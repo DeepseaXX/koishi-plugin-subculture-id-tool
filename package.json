@@ -2,7 +2,7 @@
   "name": "@deepseaxx/koishi-plugin-subculture-id-tool",
   "description": "An subculture ID creator",
   "preview": true,
-  "version": "0.2.2",
+  "version": "0.3.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [

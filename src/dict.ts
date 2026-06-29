@@ -154,15 +154,21 @@ export const CHAR_DB: Record<string, CharMapping> = {
   "片": { pinyin: "pian", traditional: "片", martian: "片" }
 };
 
+export interface AffixItem {
+  left: string;
+  right: string;
+  type: string;
+}
+
 // 预设前缀与后缀
-export const PREFIXES = [
+const rawPrefixes = [
   "野生", "无敌", "究极", "闪光", "元气", "绝版", "傲娇", "特级", "超级", "一只",
   "爆裂", "致命", "软萌", "极客", "咸鱼", "咕咕", "傲世", "幻影", "终焉", "虚无",
   "傲雪", "绯红", "幽冥", "极光", "绝望", "纯情", "快乐", "腹黑", "中二", "傲慢",
   "深渊", "苍穹", "傲天", "独行", "冰封", "烈焰"
 ];
 
-export const SUFFIXES = [
+const rawSuffixes = [
   "酱", "子", "君", "の", "sama", "殿", "喵", "qwq", "awa", "ovo",
   "哒", "咩", "啵", "叽", "噗", "嗷", "吼", "啾", "控", "姬",
   "兽", "王", "狂", "神", "仙", "尊", "霸", "皇", "爷", "仔",
@@ -170,7 +176,7 @@ export const SUFFIXES = [
 ];
 
 // 火星文两端随机修饰符
-export const MARTIAN_DECORATORS = [
+const rawMartian = [
   { left: "oοО", right: "Оοo" },
   { left: "灬", right: "灬" },
   { left: "☆ミ", right: "彡☆" },
@@ -207,6 +213,12 @@ export const MARTIAN_DECORATORS = [
   { left: "☾", right: "☽" },
   { left: "☆º°˚", right: "˚°º☆" },
   { left: "◇◆", right: "◆◇" }
+];
+
+export const BUILTIN_AFFIXES: AffixItem[] = [
+  ...rawPrefixes.map(p => ({ left: p, right: "", type: "prefix" })),
+  ...rawSuffixes.map(s => ({ left: "", right: s, type: "suffix" })),
+  ...rawMartian.map(m => ({ left: m.left, right: m.right, type: "martian" }))
 ];
 
 // Leetspeak 英文字母映射表
