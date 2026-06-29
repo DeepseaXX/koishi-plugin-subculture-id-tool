@@ -1,7 +1,8 @@
 {
-  "name": "koishi-plugin-sumemo-checker",
-  "description": "a plugin using for checking ffxiv player's status",
-  "version": "0.0.1",
+  "name": "@deepseaxx/koishi-plugin-subculture-id-tool",
+  "description": "An subculture ID creator",
+  "preview": true,
+  "version": "0.0.6",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -9,14 +10,19 @@
     "dist"
   ],
   "license": "MIT",
-  "scripts": {},
   "keywords": [
     "chatbot",
     "koishi",
     "plugin"
   ],
-  "devDependencies": {},
   "peerDependencies": {
-    "koishi": "^4.18.7"
+    "koishi": "^4.18.10"
+  },
+  "koishi": {
+    "browser": true,
+    "description": {
+      "en": "Supports subculture-themed ID generation. Features multiple preprocessing methods (traditionalization, Martian text, pinyin mapping, and Leet decoration), preset prefix/suffix configurations, and customizable admin settings.",
+      "zh": "支持生成次文化特色 ID。提供繁体化、火星文、拼音化、Leetspeak 装饰等多种预处理方式，支持预设前后缀和管理员自定义词库配置。"
+    }
   }
 }
