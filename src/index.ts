@@ -51,11 +51,10 @@ export interface Config {
   enablePinyin?: boolean;
   enableLeetDecorate?: boolean;
   maxIterations?: number;
-  randomCombineDecorators?: boolean;
-  disableBuiltinPrefixes?: boolean;
-  customPrefixes?: string[];
-  disableBuiltinSuffixes?: boolean;
-  customSuffixes?: string[];
+  martianDecoratorMode?: 'pair' | 'mix' | 'both';
+  enableBuiltinPrefixes?: boolean;
+  enableBuiltinSuffixes?: boolean;
+  customAffixes?: { prefix?: string; suffix?: string }[];
 }
 
 export const Config: Schema<Config> =
@@ -67,13 +66,19 @@ export const Config: Schema<Config> =
       enableLeetDecorate: Schema.boolean().default(true).description("是否启用 [T4] 极客文"),
     }).description("1️⃣ 核心变换层 (Core Transformation)"),
     Schema.object({
-      randomCombineDecorators: Schema.boolean().default(true).description("是否允许 [D1] 火星包边 左右随机混搭（若关闭则两侧对称配对）"),
+      martianDecoratorMode: Schema.union([
+        Schema.const('pair').description('固定配对'),
+        Schema.const('mix').description('随机混搭'),
+        Schema.const('both').description('混合模式（配对几率占 50%）'),
+      ]).default('both').description("火星包边左右修饰符模式"),
     }).description("2️⃣ 文字伴侣层 (Text Embellishment)"),
     Schema.object({
-      disableBuiltinPrefixes: Schema.boolean().default(false).description("是否禁用内置的 [A1] 前置挂件"),
-      customPrefixes: Schema.array(Schema.string()).role('table').default([]).description("自定义额外 [A1] 前置挂件 列表"),
-      disableBuiltinSuffixes: Schema.boolean().default(false).description("是否禁用内置的 [A2] 后置挂件"),
-      customSuffixes: Schema.array(Schema.string()).role('table').default([]).description("自定义额外 [A2] 后置挂件 列表")
+      enableBuiltinPrefixes: Schema.boolean().default(true).description("是否启用内置的 [A1] 前置挂件"),
+      enableBuiltinSuffixes: Schema.boolean().default(true).description("是否启用内置的 [A2] 后置挂件"),
+      customAffixes: Schema.array(Schema.object({
+        prefix: Schema.string().default('').description('前置挂件'),
+        suffix: Schema.string().default('').description('后件/后置挂件'),
+      })).role('table').default([]).description("自定义额外首尾外挂对 列表 (单边留空即为单边前缀/后缀)"),
     }).description("3️⃣ 首尾外挂层 (Outer Affixes)"),
     Schema.object({
       maxIterations: Schema.number().default(3).min(1).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
@@ -102,18 +107,33 @@ function transformMartian(text: string, config: Config, decorOption?: string): s
     left = "";
     right = "";
   } else {
-    const isMix = decorOption === "mix" ? true : (decorOption === "pair" ? false : (config.randomCombineDecorators ?? true));
-    if (isMix) {
+    let mode = config.martianDecoratorMode ?? "both";
+    if (decorOption === "mix") {
+      mode = "mix";
+    } else if (decorOption === "pair") {
+      mode = "pair";
+    }
+
+    let isPair = true;
+    if (mode === "mix") {
+      isPair = false;
+    } else if (mode === "pair") {
+      isPair = true;
+    } else {
+      isPair = Math.random() < 0.5;
+    }
+
+    if (isPair) {
+      // 配对模式
+      const deco = MARTIAN_DECORATORS[Math.floor(Math.random() * MARTIAN_DECORATORS.length)];
+      left = deco.left;
+      right = deco.right;
+    } else {
       // 随机混搭模式
       const leftDeco = MARTIAN_DECORATORS[Math.floor(Math.random() * MARTIAN_DECORATORS.length)];
       const rightDeco = MARTIAN_DECORATORS[Math.floor(Math.random() * MARTIAN_DECORATORS.length)];
       left = leftDeco.left;
       right = rightDeco.right;
-    } else {
-      // 配对模式
-      const deco = MARTIAN_DECORATORS[Math.floor(Math.random() * MARTIAN_DECORATORS.length)];
-      left = deco.left;
-      right = deco.right;
     }
   }
 
@@ -176,14 +196,20 @@ function transformLeetAndDecorate(text: string, decorOption?: string): string {
 
 // 合并前缀列表
 function getMergedPrefixes(config: Config): string[] {
-  const builtin = config.disableBuiltinPrefixes ? [] : PREFIXES;
-  return [...builtin, ...(config.customPrefixes || [])];
+  const builtin = (config.enableBuiltinPrefixes ?? true) ? PREFIXES : [];
+  const custom = (config.customAffixes || [])
+    .map(a => a.prefix?.trim() || "")
+    .filter(p => p !== "");
+  return [...builtin, ...custom];
 }
 
 // 合并后缀列表
 function getMergedSuffixes(config: Config): string[] {
-  const builtin = config.disableBuiltinSuffixes ? [] : SUFFIXES;
-  return [...builtin, ...(config.customSuffixes || [])];
+  const builtin = (config.enableBuiltinSuffixes ?? true) ? SUFFIXES : [];
+  const custom = (config.customAffixes || [])
+    .map(a => a.suffix?.trim() || "")
+    .filter(s => s !== "");
+  return [...builtin, ...custom];
 }
 
 // 解析前缀
