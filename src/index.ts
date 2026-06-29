@@ -9,6 +9,20 @@ import {
 
 export const name = "subculture-id-tool";
 
+// 导出插件在控制台的用法说明
+export const usage = `
+## 📖 插件介绍
+一个极具次文化特色的 ID 生成器。支持将普通词汇预处理为繁体字、火星文、拼音化、Leetspeak 装饰，并搭配前后缀，可生成充满中二风、非主流色彩的网名/ID。
+
+### 🌟 常用指令
+- **subid [关键词]**：生成一个次文化特色 ID。
+  - *-p, --prefix <prefix>*：指定前缀（输入 1-N 编号选用预设，\`none\` 禁用，或直接输入自定义文本）。
+  - *-s, --suffix <suffix>*：指定后缀（输入 1-N 编号选用预设，\`none\` 禁用，或直接输入自定义文本）。
+  - *-t, --trans <trans>*：指定预处理方法组合（输入逗号分隔的编号如 \`1,2\` 按顺序应用，\`none\` 禁用）。
+  - *-l, --list*：展示支持的预处理和前后缀列表与编号。
+- **subid-list**：查看支持的预处理和前后缀列表与编号。
+`;
+
 // 定义配置接口
 export interface Config {
   enableTraditional?: boolean;
@@ -22,18 +36,25 @@ export interface Config {
   customSuffixes?: string[];
 }
 
-// 导出 Koishi 配置面板 Schema
-export const Config: Schema<Config> = Schema.object({
-  enableTraditional: Schema.boolean().default(true).description("是否启用繁体化预处理 (编号 1)"),
-  enableMartian: Schema.boolean().default(true).description("是否启用火星文预处理 (编号 2)"),
-  enablePinyin: Schema.boolean().default(true).description("是否启用拼音与符号预处理 (编号 3)"),
-  enableLeetDecorate: Schema.boolean().default(true).description("是否启用 Leet 与加料预处理 (编号 4)"),
-  randomCombineDecorators: Schema.boolean().default(true).description("是否允许火星文两端修饰符左右随机混搭组合"),
-  disableBuiltinPrefixes: Schema.boolean().default(false).description("是否禁用内置的预设前缀"),
-  customPrefixes: Schema.array(Schema.string()).default([]).description("自定义额外前缀列表"),
-  disableBuiltinSuffixes: Schema.boolean().default(false).description("是否禁用内置的预设后缀"),
-  customSuffixes: Schema.array(Schema.string()).default([]).description("自定义额外后缀列表")
-});
+export const Config: Schema<Config> =
+    Schema.intersect([
+        Schema.object({
+            enableTraditional: Schema.boolean().default(true).description("是否启用繁体化预处理 (编号 1)"),
+            enableMartian: Schema.boolean().default(true).description("是否启用火星文预处理 (编号 2)"),
+            enablePinyin: Schema.boolean().default(true).description("是否启用拼音与符号预处理 (编号 3)"),
+            enableLeetDecorate: Schema.boolean().default(true).description("是否启用 Leet 与加料预处理 (编号 4)"),
+        }).description("预处理功能"),
+        Schema.object({
+            randomCombineDecorators: Schema.boolean().default(true).description("是否允许火星文两端修饰符左右随机混搭组合"),
+        }).description("火星文装饰"),
+        Schema.object({
+            disableBuiltinPrefixes: Schema.boolean().default(false).description("是否禁用内置的预设前缀"),
+            customPrefixes: Schema.array(Schema.string()).default([]).description("自定义额外前缀列表"),
+            disableBuiltinSuffixes: Schema.boolean().default(false).description("是否禁用内置的预设后缀"),
+            customSuffixes: Schema.array(Schema.string()).default([]).description("自定义额外后缀列表")
+        }).description("前后缀词库设置")
+    ]);
+
 
 // 预处理 1: 繁体化
 function transformTraditional(text: string): string {
@@ -251,16 +272,20 @@ function getListMessage(config: Config): string {
   }
 
   msg += "\n💡 提示：使用 -p, -s, -t 选项可以固定前置/后置/预处理组合，或输入 none 禁用某项处理。";
+  msg += "\n📝 示例：subid 雪芝麻糊 -p 1 -s none -t 3";
   return msg;
 }
 
 export function apply(ctx: Context, config: Config) {
+  config = config || {} as Config;
+
   ctx.command("subid [keyword]", "次文化 ID 生成器")
     .alias("subculture-id")
     .option("prefix", "-p <prefix:string>  指定前缀 (输入编号选用预设，none 禁用，或自定义)")
     .option("suffix", "-s <suffix:string>  指定后缀 (输入编号选用预设，none 禁用，或自定义)")
     .option("trans", "-t <trans:string>    指定预处理 (输入逗号分隔的编号如 1,2，none 禁用)")
-    .option("list", "-l                    显示支持的预处理和前后缀列表与编号")
+    .option("list", "-l                    显示支持的预处理 and 前后缀列表与编号")
+    .example("subid 雪芝麻糊 -p 1 -s none -t 3  (固定首位预设前缀，禁用后缀，并应用拼音化转换)")
     .action(async ({ options, session }, keyword) => {
       if (options.list) {
         return getListMessage(config);
@@ -283,7 +308,7 @@ export function apply(ctx: Context, config: Config) {
       return `${prefix}${processed}${suffix}`;
     });
 
-  ctx.command("subid-list", "查看次文化 ID 生成器支持的预处理 and 前后缀列表")
+  ctx.command("subid-list", "查看次文化 ID 生成器支持的预处理和前后缀列表")
     .action(() => {
       return getListMessage(config);
     });

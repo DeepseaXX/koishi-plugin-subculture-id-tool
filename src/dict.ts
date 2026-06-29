@@ -179,7 +179,7 @@ export const MARTIAN_DECORATORS = [
   { left: "✿", right: "✿" },
   { left: "ゞ", right: "ゞ" },
   { left: "〆", right: "〆" },
-  { left: "₊°✢ ε৯", right: "໒३ ✢°₊" },
+  { left: "₊°✢ε৯", right: "໒३✢°₊" },
   { left: "꧁", right: "꧂" },
   { left: "❦", right: "❦" },
   { left: "๑۩۞۩๑", right: "๑۩۞۩๑" },

@@ -2,7 +2,7 @@
   "name": "@deepseaxx/koishi-plugin-subculture-id-tool",
   "description": "An subculture ID creator",
   "preview": true,
-  "version": "0.0.6",
+  "version": "0.0.8",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -10,6 +10,7 @@
     "dist"
   ],
   "license": "MIT",
+  "homepage": "https://github.com/DeepseaXX/koishi-plugin-subculture-id-tool",
   "keywords": [
     "chatbot",
     "koishi",
