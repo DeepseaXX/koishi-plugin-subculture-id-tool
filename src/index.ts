@@ -65,13 +65,14 @@ export interface Config {
 export const Config: Schema<Config> =
   Schema.intersect([
     Schema.object({
+      maxIterations: Schema.number().default(1).min(0).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
       enableTraditional: Schema.boolean().default(true).description("是否启用 [T1] 简转繁"),
       enableMartian: Schema.boolean().default(true).description("是否启用 [T2] 火星文"),
       enablePinyin: Schema.boolean().default(true).description("是否启用 [T3] 拼音化"),
       enableLeetDecorate: Schema.boolean().default(true).description("是否启用 [T4] 极客文"),
-      maxIterations: Schema.number().default(1).min(1).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
     }).description("1️⃣ 核心变换层 (Core Transformation)"),
     Schema.object({
+      maxAffixIterations: Schema.number().default(2).min(0).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
       enabledTypes: Schema.dict(Schema.boolean()).default({
         prefix: true,
         suffix: true,
@@ -87,7 +88,6 @@ export const Config: Schema<Config> =
         right: Schema.string().default('').description('右侧修饰 / 后缀文字'),
         type: Schema.string().default('prefix').description('分类类型 (如 prefix, suffix, martian 或自定义分类)'),
       })).role('table').default([]).description("自定义额外修饰与外挂对 列表"),
-      maxAffixIterations: Schema.number().default(1).min(1).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
     }).description("2️⃣ 修饰与外挂层 (Decorations & Affixes)"),
   ]);
 
@@ -217,12 +217,12 @@ function applyAffixes(
   }
 
   // 2. 计算实际需要的迭代次数
-  const configMax = Math.min(config.maxAffixIterations ?? 1, 10);
+  const configMax = Math.min(config.maxAffixIterations ?? 2, 10);
   let actualIterations: number;
   if (affixIterOption !== undefined && !isNaN(affixIterOption)) {
-    actualIterations = Math.min(Math.max(1, affixIterOption), 10);
+    actualIterations = Math.min(Math.max(0, affixIterOption), 10);
   } else {
-    actualIterations = Math.floor(Math.random() * configMax) + 1;
+    actualIterations = configMax <= 0 ? 0 : Math.floor(Math.random() * configMax) + 1;
   }
 
   // 3. 构建待应用的修饰队列
@@ -344,10 +344,10 @@ function applyTransformers(
   let actualIterations: number;
   if (iterOption !== undefined && !isNaN(iterOption)) {
     // 命令行显式指定迭代次数，可突破配置上限，但受硬上限 10 限制
-    actualIterations = Math.min(Math.max(1, iterOption), 10);
+    actualIterations = Math.min(Math.max(0, iterOption), 10);
   } else {
-    // 随机迭代次数在 1 到 configMax 之间
-    actualIterations = Math.floor(Math.random() * configMax) + 1;
+    // 随机迭代次数在 1 到 configMax 之间，若 configMax 为 0 则为 0 次
+    actualIterations = configMax <= 0 ? 0 : Math.floor(Math.random() * configMax) + 1;
   }
 
   if (actualIterations <= 0) {
