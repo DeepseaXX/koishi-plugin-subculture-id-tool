@@ -2,7 +2,7 @@
   "name": "@deepseaxx/koishi-plugin-subculture-id-tool",
   "description": "An subculture ID creator",
   "preview": true,
-  "version": "0.0.8",
+  "version": "0.2.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
@@ -10,11 +10,23 @@
     "dist"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DeepseaXX/koishi-plugin-subculture-id-tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DeepseaXX/koishi-plugin-subculture-id-tool/issues"
+  },
   "homepage": "https://github.com/DeepseaXX/koishi-plugin-subculture-id-tool",
   "keywords": [
+    "bot",
     "chatbot",
     "koishi",
-    "plugin"
+    "plugin",
+    "subculture",
+    "id",
+    "tool",
+    "name"
   ],
   "peerDependencies": {
     "koishi": "^4.18.10"
@@ -22,8 +34,8 @@
   "koishi": {
     "browser": true,
     "description": {
-      "en": "Supports subculture-themed ID generation. Features multiple preprocessing methods (traditionalization, Martian text, pinyin mapping, and Leet decoration), preset prefix/suffix configurations, and customizable admin settings.",
-      "zh": "支持生成次文化特色 ID。提供繁体化、火星文、拼音化、Leetspeak 装饰等多种预处理方式，支持预设前后缀和管理员自定义词库配置。"
+      "en": "Supports subculture-themed ID generation. Features core transformations (traditional, Martian, pinyin, and Leet), text embellishments (borders, badges, spacers), and customizable affixes.",
+      "zh": "支持生成次文化特色 ID。提供核心变换层（简转繁、火星文、拼音化、极客文）、文字伴侣层（火星包边、拼音印记、极客夹心）和首尾外挂层（前后置挂件）的生成与配置。"
     }
   }
 }
