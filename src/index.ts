@@ -14,23 +14,37 @@ export const usage = `
 
 1. **核心变换层 (Core Transformation)**：对关键词主体字形进行样式形变
    - **[T1] 简转繁 (Traditional)**（代号: \`t1\` / \`trad\` / \`1\`）
+     - *示例*：\`雪芝麻糊\` ➔ \`雪芝麻糊\`
    - **[T2] 火星文 (Martian)**（代号: \`t2\` / \`mart\` / \`2\`）
+     - *示例*：\`芝麻\` ➔ \`芝麻\`
    - **[T3] 拼音化 (Pinyin)**（代号: \`t3\` / \`piny\` / \`3\`）
+     - *示例*：\`雪\` ➔ \`★xue★\`
    - **[T4] 极客文 (Leet)**（代号: \`t4\` / \`leet\` / \`4\`）
+     - *示例*：\`芝麻\` ➔ \`zh1ゞma\`
+   - **[T0] 不做处理 (None)**：不改变字形，跳过变换
+
 2. **修饰与外挂层 (Decorations & Affixes)**：在主体文字首尾添加各类修饰词或外挂件
-   - 支持前置挂件 (\`prefix\`)、后置挂件 (\`suffix\`)、火星包边 (\`martian\`) 以及自定义类型的首尾对
+   - **前置挂件 (\`prefix\`)**：在最左侧添加前缀装饰字符。
+     - *示例*：\`[prefix]雪芝麻糊\` ➔ \`ʚ雪芝麻糊\`
+   - **后置挂件 (\`suffix\`)**：在最右侧添加后缀装饰字符。
+     - *示例*：\`雪芝麻糊[suffix]\` ➔ \`雪芝麻糊o7\`
+   - **火星包边 (\`martian\`)**：在字符左右包裹对应的火星符号，支持对称与随机混搭。
+     - *示例*：\`[martian]雪芝麻糊[martian]\` ➔ \`✿雪芝麻糊✿\` 或 \`ゞ雪芝麻糊•\`
+   - **自定义分类 (\`custom\`)**：如 \`vip\` 等自定义分类首尾对。
+     - *示例*：\`--affix vip:1\` ➔ \`[VIP]雪芝麻糊\`
 
 ---
 
 ### 🌟 常用指令
 - **subid [关键词]**：生成次文化 ID。
-  - *-p, --prefix <prefix>*：快捷指定 **前缀挂件**（输入 1-N 选用预设，\`none\` 禁用，或直接输入自定义文本）。
+  - *-p, --prefix <prefix>*：快捷指定 **前置挂件**（输入 1-N 选用预设，\`none\` 禁用，或直接输入自定义文本）。
   - *-s, --suffix <suffix>*：快捷指定 **后缀挂件**（输入 1-N 选用预设，\`none\` 禁用，或直接输入自定义文本）。
   - *-a, --affix <affix>*：指定特定类型的修饰符（格式为 \`type:value\`，如 \`vip:1,martian:none\`）。
-  - *-t, --trans <trans>*：指定 **核心变换** 样式与叠加顺序（输入逗号分隔的代号如 \`t1,t2\`，或 \`none\` 禁用）。
+  - *-t, --trans <trans>*：指定 **核心变换** 样式与叠加顺序（支持逗号分隔的代号如 \`t1,t2\`，或连续的数字如 \`12\`，或 \`none\` 禁用）。
+  - *-c, --core-mode <coreMode>*：指定 **核心变换模式**（\`each\`: 逐字处理，\`all\`: 整段处理）。
   - *-d, --decor <decor>*：快捷控制 **火星包边** 点缀效果（\`none\` 禁用，\`mix\` 混搭，\`pair\` 对齐）。
-  - *-i, --iter <iter>*：指定核心变换的叠加迭代次数（1-10 次，默认从配置读取，配置默认为 1 次）。
-  - *-y, --affix-iter <affixIter>*：指定修饰与外挂层的叠加迭代次数（1-10 次，默认从配置读取，配置默认为 1 次）。
+  - *-i, --iter <iter>*：指定核心变换的叠加迭代次数（1-10 次，默认从配置读取）。
+  - *-y, --affix-iter <affixIter>*：指定修饰与外挂层的叠加迭代次数（1-10 次，默认从配置读取）。
   - *-l, --list*：展示支持的变换样式、修饰与外挂分类列表及编号代号。
 - **subid-list**：查看支持的列表及编号代号。
 
@@ -56,6 +70,12 @@ export interface Config {
   enablePinyin?: boolean;
   enableLeetDecorate?: boolean;
   maxIterations?: number;
+  coreTransformMode?: 'each' | 'all';
+  weightT0?: number;
+  weightT1?: number;
+  weightT2?: number;
+  weightT3?: number;
+  weightT4?: number;
   martianDecoratorMode?: 'pair' | 'mix' | 'both';
   enabledTypes?: Record<string, boolean>;
   customAffixes?: CustomAffix[];
@@ -66,10 +86,19 @@ export const Config: Schema<Config> =
   Schema.intersect([
     Schema.object({
       maxIterations: Schema.number().default(1).min(0).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
+      coreTransformMode: Schema.union([
+        Schema.const('each').description('对每个文字分别处理不同的类型 (逐字处理)'),
+        Schema.const('all').description('对所有文字做同一类型的处理 (整段处理)'),
+      ]).default('each').description("核心变换模式 (默认逐字处理)"),
       enableTraditional: Schema.boolean().default(true).description("是否启用 [T1] 简转繁"),
       enableMartian: Schema.boolean().default(true).description("是否启用 [T2] 火星文"),
       enablePinyin: Schema.boolean().default(true).description("是否启用 [T3] 拼音化"),
       enableLeetDecorate: Schema.boolean().default(true).description("是否启用 [T4] 极客文"),
+      weightT0: Schema.number().default(1).min(0).description("不做处理 [T0] 的生效权重"),
+      weightT1: Schema.number().default(1).min(0).description("简转繁 [T1] 的生效权重"),
+      weightT2: Schema.number().default(1).min(0).description("火星文 [T2] 的生效权重"),
+      weightT3: Schema.number().default(1).min(0).description("拼音化 [T3] 的生效权重"),
+      weightT4: Schema.number().default(1).min(0).description("极客文 [T4] 的生效权重"),
     }).description("1️⃣ 核心变换层 (Core Transformation)"),
     Schema.object({
       maxAffixIterations: Schema.number().default(2).min(0).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
@@ -317,24 +346,82 @@ function parseTransToken(token: string): number | null {
   return null;
 }
 
+// 解析用户指定的核心变换序列
+function parseTransOption(optionVal: string, config: Config): number[] {
+  const val = optionVal.trim();
+  if (val.toLowerCase() === "none") {
+    return [];
+  }
+
+  let tokens: string[] = [];
+  // 优化：如果是纯数字（如 12、124、314），直接按单个字拆分
+  if (/^[1-4]+$/.test(val)) {
+    tokens = Array.from(val);
+  } else {
+    tokens = val.split(",");
+  }
+
+  return tokens
+    .map(s => parseTransToken(s))
+    .filter((n): n is number => n !== null && isTransEnabled(n, config));
+}
+
+// 根据权重随机选择核心变换 (包含 T0)
+function getRandomTransformer(config: Config): number {
+  const items: { num: number; weight: number }[] = [];
+
+  // T0 总是可用
+  items.push({ num: 0, weight: config.weightT0 ?? 1 });
+
+  if (config.enableTraditional ?? true) {
+    items.push({ num: 1, weight: config.weightT1 ?? 1 });
+  }
+  if (config.enableMartian ?? true) {
+    items.push({ num: 2, weight: config.weightT2 ?? 1 });
+  }
+  if (config.enablePinyin ?? true) {
+    items.push({ num: 3, weight: config.weightT3 ?? 1 });
+  }
+  if (config.enableLeetDecorate ?? true) {
+    items.push({ num: 4, weight: config.weightT4 ?? 1 });
+  }
+
+  const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+  if (totalWeight <= 0) {
+    return 0;
+  }
+
+  let r = Math.random() * totalWeight;
+  for (const item of items) {
+    if (r < item.weight) {
+      return item.num;
+    }
+    r -= item.weight;
+  }
+  return 0;
+}
+
 // 应用核心变换组合
 function applyTransformers(
   text: string,
   optionVal: string | undefined,
   iterOption: number | undefined,
   decorOption: string | undefined,
-  config: Config
+  config: Config,
+  cmdCoreMode?: string
 ): string {
   const transMap: Record<number, (t: string, c: Config, d?: string) => string> = {
+    0: (t) => t,
     1: (t) => transformTraditional(t),
     2: (t) => transformMartian(t),
     3: (t, c, d) => transformPinyin(t, d),
     4: (t, c, d) => transformLeetAndDecorate(t, d)
   };
 
-  const available = [1, 2, 3, 4].filter(n => isTransEnabled(n, config));
-  if (available.length === 0) {
-    return text;
+  // 决定处理模式：优先使用命令行指定的，其次是配置中的，默认是 'each'
+  let mode = cmdCoreMode || config.coreTransformMode || 'each';
+  if (mode !== 'each' && mode !== 'all') {
+    mode = 'each';
   }
 
   // 计算最大限制，配置上限不能超过硬上限 10
@@ -354,54 +441,83 @@ function applyTransformers(
     return text;
   }
 
-  let selected: number[] = [];
-
-  if (optionVal === undefined) {
-    // 随机选择 actualIterations 个预处理方法，每次都从 available 中随机抽取，允许重复
-    for (let i = 0; i < actualIterations; i++) {
-      const idx = Math.floor(Math.random() * available.length);
-      selected.push(available[idx]);
-    }
-  } else {
+  // 解析用户指定的固定变换（如果有）
+  let specified: number[] | null = null;
+  if (optionVal !== undefined) {
+    specified = parseTransOption(optionVal, config);
+    // 如果用户明确指定了 none，就表示不应用变换
     if (optionVal.toLowerCase() === "none") {
       return text;
     }
+  }
 
-    // 解析用户指定的代号并过滤掉未开启的变换样式
-    const fixedNums = optionVal
-      .split(",")
-      .map(s => parseTransToken(s))
-      .filter((n): n is number => n !== null && transMap[n] !== undefined && isTransEnabled(n, config));
-
-    selected = [...fixedNums];
-    if (selected.length > actualIterations) {
-      selected = selected.slice(0, actualIterations);
+  // 生成指定长度的变换链（用于单字或者整段）
+  const getTransformerChain = (): number[] => {
+    let chain: number[] = [];
+    if (specified !== null) {
+      chain = [...specified];
+      if (chain.length > actualIterations) {
+        chain = chain.slice(0, actualIterations);
+      } else {
+        // 补充缺失的迭代次数，根据权重随机选择变换
+        while (chain.length < actualIterations) {
+          chain.push(getRandomTransformer(config));
+        }
+      }
     } else {
-      // 补充缺失的迭代次数，从所有可用的变换中随机抽取
-      while (selected.length < actualIterations) {
-        const randomIdx = Math.floor(Math.random() * available.length);
-        selected.push(available[randomIdx]);
+      // 完全随机生成
+      for (let i = 0; i < actualIterations; i++) {
+        chain.push(getRandomTransformer(config));
       }
     }
-  }
+    return chain;
+  };
 
-  let current = text;
-  for (const num of selected) {
-    current = transMap[num](current, config, decorOption);
+  if (mode === 'each') {
+    // 逐字随机/处理
+    const chars = Array.from(text);
+    const processedChars = chars.map(char => {
+      // 每个文字的变换链如果是随机的话，需要各自独立生成
+      const chain = getTransformerChain();
+      let current = char;
+      for (const num of chain) {
+        current = transMap[num](current, config, decorOption);
+      }
+      return current;
+    });
+    return processedChars.join("");
+  } else {
+    // 整段处理
+    const chain = getTransformerChain();
+    let current = text;
+    for (const num of chain) {
+      current = transMap[num](current, config, decorOption);
+    }
+    return current;
   }
-  return current;
 }
 
 // 获取列表展示信息
 function getListMessage(config: Config): string {
   const isEnabledStr = (num: number) => isTransEnabled(num, config) ? "" : " (已全局禁用)";
 
+  // 计算权重和几率
+  const w0 = config.weightT0 ?? 1;
+  const w1 = isTransEnabled(1, config) ? (config.weightT1 ?? 1) : 0;
+  const w2 = isTransEnabled(2, config) ? (config.weightT2 ?? 1) : 0;
+  const w3 = isTransEnabled(3, config) ? (config.weightT3 ?? 1) : 0;
+  const w4 = isTransEnabled(4, config) ? (config.weightT4 ?? 1) : 0;
+  const total = w0 + w1 + w2 + w3 + w4;
+
+  const pct = (w: number) => total > 0 ? `${((w / total) * 100).toFixed(1)}%` : "0%";
+
   let msg = "✨ 次文化 ID 生成器 支持列表 ✨\n\n";
   msg += "1️⃣ 【核心变换层 Core Transformation】(使用 -t 选项或代号指定)\n";
-  msg += `• [T1] 简转繁 (trad) - 如: 葉子${isEnabledStr(1)}\n`;
-  msg += `• [T2] 火星文 (mart) - 如: 噯${isEnabledStr(2)}\n`;
-  msg += `• [T3] 拼音化 (piny) - 如: ★ye_zi★${isEnabledStr(3)}\n`;
-  msg += `• [T4] 极客文 (leet) - 如: yゞ3ゞzゞ1${isEnabledStr(4)}\n\n`;
+  msg += `• [T0] 不做处理 - 权重: ${w0} (几率: ${pct(w0)})\n`;
+  msg += `• [T1] 简转繁 (trad) - 权重: ${w1} (几率: ${pct(w1)})${isEnabledStr(1)}\n`;
+  msg += `• [T2] 火星文 (mart) - 权重: ${w2} (几率: ${pct(w2)})${isEnabledStr(2)}\n`;
+  msg += `• [T3] 拼音化 (piny) - 权重: ${w3} (几率: ${pct(w3)})${isEnabledStr(3)}\n`;
+  msg += `• [T4] 极客文 (leet) - 权重: ${w4} (几率: ${pct(w4)})${isEnabledStr(4)}\n\n`;
 
   msg += "2️⃣ 【修饰与外挂层 Decorations & Affixes】(可以使用 -p, -s 或 --affix 指定)\n";
 
@@ -453,12 +569,14 @@ export function apply(ctx: Context, config: Config) {
     .option("prefix", "-p <prefix:string>  指定前置挂件 (输入编号选用预设，none 禁用，或自定义)")
     .option("suffix", "-s <suffix:string>  指定后置挂件 (输入编号选用预设，none 禁用，或自定义)")
     .option("affix", "-a <affix:string>    指定特定类型的修饰符 (格式为 type:value，如 vip:1,martian:none)")
-    .option("trans", "-t <trans:string>    指定 [T1-T4] 核心变换 (支持逗号分隔的代号如 trad,mart，none 禁用)")
+    .option("trans", "-t <trans:string>    指定 [T1-T4] 核心变换 (支持逗号分隔的代号如 trad,mart，或无逗号纯数字如 12，none 禁用)")
+    .option("coreMode", "-c <coreMode:string> 指定核心变换处理模式 (each: 逐字处理, all: 整段处理)")
     .option("decor", "-d <decor:string>    控制火星包边左右修饰符模式 (none 禁用，mix 随机混搭，pair 对称配对)")
     .option("iter", "-i <iter:number>      指定核心变换的叠加迭代次数 (可突破配置上限，硬上限 10 次)")
     .option("affixIter", "-y <affixIter:number> 指定修饰与外挂层的叠加迭代次数 (可突破配置上限，硬上限 10 次)")
     .option("list", "-l                    显示支持的变换样式、修饰与外挂分类列表及编号代号")
     .example("subid 雪芝麻糊 -p 1 -s none -t trad -d none  (固定前置挂件，禁用后缀，应用简转繁核心变换且禁用火星包边)")
+    .example("subid 雪芝麻糊 -t 12 -c all                 (对所有文字整体应用简转繁和火星文变换)")
     .action(async ({ options, session }, keyword) => {
       if (options.list) {
         return getListMessage(config);
@@ -474,7 +592,7 @@ export function apply(ctx: Context, config: Config) {
         targetKeyword = replied;
       }
 
-      const processed = applyTransformers(targetKeyword, options.trans, options.iter, options.decor, config);
+      const processed = applyTransformers(targetKeyword, options.trans, options.iter, options.decor, config, options.coreMode);
 
       const specified: Record<string, string> = {};
       if (options.affix) {
