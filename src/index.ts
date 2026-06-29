@@ -29,7 +29,8 @@ export const usage = `
   - *-a, --affix <affix>*：指定特定类型的修饰符（格式为 \`type:value\`，如 \`vip:1,martian:none\`）。
   - *-t, --trans <trans>*：指定 **核心变换** 样式与叠加顺序（输入逗号分隔的代号如 \`t1,t2\`，或 \`none\` 禁用）。
   - *-d, --decor <decor>*：快捷控制 **火星包边** 点缀效果（\`none\` 禁用，\`mix\` 混搭，\`pair\` 对齐）。
-  - *-i, --iter <iter>*：指定核心变换的叠加迭代次数上限（1-10 次）。
+  - *-i, --iter <iter>*：指定核心变换的叠加迭代次数（1-10 次，默认从配置读取，配置默认为 1 次）。
+  - *-y, --affix-iter <affixIter>*：指定修饰与外挂层的叠加迭代次数（1-10 次，默认从配置读取，配置默认为 1 次）。
   - *-l, --list*：展示支持的变换样式、修饰与外挂分类列表及编号代号。
 - **subid-list**：查看支持的列表及编号代号。
 
@@ -58,6 +59,7 @@ export interface Config {
   martianDecoratorMode?: 'pair' | 'mix' | 'both';
   enabledTypes?: Record<string, boolean>;
   customAffixes?: CustomAffix[];
+  maxAffixIterations?: number;
 }
 
 export const Config: Schema<Config> =
@@ -67,6 +69,7 @@ export const Config: Schema<Config> =
       enableMartian: Schema.boolean().default(true).description("是否启用 [T2] 火星文"),
       enablePinyin: Schema.boolean().default(true).description("是否启用 [T3] 拼音化"),
       enableLeetDecorate: Schema.boolean().default(true).description("是否启用 [T4] 极客文"),
+      maxIterations: Schema.number().default(1).min(1).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
     }).description("1️⃣ 核心变换层 (Core Transformation)"),
     Schema.object({
       enabledTypes: Schema.dict(Schema.boolean()).default({
@@ -84,10 +87,8 @@ export const Config: Schema<Config> =
         right: Schema.string().default('').description('右侧修饰 / 后缀文字'),
         type: Schema.string().default('prefix').description('分类类型 (如 prefix, suffix, martian 或自定义分类)'),
       })).role('table').default([]).description("自定义额外修饰与外挂对 列表"),
+      maxAffixIterations: Schema.number().default(1).min(1).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
     }).description("2️⃣ 修饰与外挂层 (Decorations & Affixes)"),
-    Schema.object({
-      maxIterations: Schema.number().default(3).min(1).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
-    }).description("⚙️ 通用生成设置")
   ]);
 
 // 预处理 1: 繁体化
@@ -179,109 +180,115 @@ function applyAffixes(
   text: string,
   specified: Record<string, string>,
   decorOption: string | undefined,
-  config: Config
+  config: Config,
+  affixIterOption?: number
 ): string {
   const allAffixes = getAvailableAffixes(config);
-  const allTypes = Array.from(new Set(allAffixes.map(a => a.type)));
 
-  // 定义修饰外挂的叠加包裹嵌套顺序
-  // 1. martian 包在最内层
-  // 2. 自定义类型包在中间 (根据字母顺序排序以保持稳定顺序)
-  // 3. suffix / prefix 包在最外层
-  const sortedTypes = [...allTypes].sort((a, b) => {
-    const rank = (t: string) => {
-      if (t === "martian") return 1;
-      if (t === "prefix" || t === "suffix") return 3;
-      return 2;
-    };
-    const rankA = rank(a);
-    const rankB = rank(b);
-    if (rankA !== rankB) return rankA - rankB;
-    return a.localeCompare(b);
-  });
+  // 1. 收集明确指定的修饰（-p, -s, -a 等指定的且不是 "none" 的修饰）
+  const specifiedQueue: AffixItem[] = [];
+  const specifiedTypes = Object.keys(specified);
 
-  let current = text;
-
-  for (const type of sortedTypes) {
-    let shouldApply = false;
-    let optionVal = specified[type];
-
-    if (type === "martian") {
-      if (decorOption === "none" || optionVal === "none") {
-        shouldApply = false;
-      } else {
-        shouldApply = optionVal !== undefined || (config.enabledTypes?.[type] ?? true);
-      }
-    } else {
-      if (optionVal === "none") {
-        shouldApply = false;
-      } else {
-        shouldApply = optionVal !== undefined || (config.enabledTypes?.[type] ?? true);
-      }
-    }
-
-    if (!shouldApply) {
+  for (const type of specifiedTypes) {
+    const val = specified[type];
+    if (val === undefined || val === "none") {
       continue;
     }
 
     const candidates = allAffixes.filter(a => a.type === type);
-    if (candidates.length === 0 && optionVal === undefined) {
+    // 如果是 martian 的特殊模式选项 (mix/pair/both)，先不作为固定值处理，让其参与后面的随机/计算逻辑
+    const isModeOption = type === "martian" && (val === "mix" || val === "pair" || val === "both");
+    if (isModeOption) {
       continue;
     }
 
-    let left = "";
-    let right = "";
-
-    const isModeOption = type === "martian" && (optionVal === "mix" || optionVal === "pair" || optionVal === "both");
-    if (optionVal !== undefined && !isModeOption) {
-      const index = parseInt(optionVal, 10);
-      if (!isNaN(index) && index >= 1 && index <= candidates.length) {
-        left = candidates[index - 1].left;
-        right = candidates[index - 1].right;
-      } else {
-        // 作为自定义文本使用
-        if (type === "suffix") {
-          left = "";
-          right = optionVal;
-        } else {
-          left = optionVal;
-          right = "";
-        }
-      }
+    // 解析指定的值
+    const index = parseInt(val, 10);
+    if (!isNaN(index) && index >= 1 && index <= candidates.length) {
+      specifiedQueue.push({ ...candidates[index - 1] });
     } else {
-      // 随机选择
-      if (type === "martian") {
-        let mode = config.martianDecoratorMode ?? "both";
-        const optVal = optionVal || decorOption;
-        if (optVal === "mix") {
-          mode = "mix";
-        } else if (optVal === "pair") {
-          mode = "pair";
-        }
+      // 自定义文本
+      if (type === "suffix") {
+        specifiedQueue.push({ left: "", right: val, type });
+      } else {
+        specifiedQueue.push({ left: val, right: "", type });
+      }
+    }
+  }
 
-        let isPair = true;
-        if (mode === "mix") {
-          isPair = false;
-        } else if (mode === "pair") {
-          isPair = true;
-        } else {
-          isPair = Math.random() < 0.5;
-        }
+  // 2. 计算实际需要的迭代次数
+  const configMax = Math.min(config.maxAffixIterations ?? 1, 10);
+  let actualIterations: number;
+  if (affixIterOption !== undefined && !isNaN(affixIterOption)) {
+    actualIterations = Math.min(Math.max(1, affixIterOption), 10);
+  } else {
+    actualIterations = Math.floor(Math.random() * configMax) + 1;
+  }
 
-        if (isPair) {
-          const deco = candidates[Math.floor(Math.random() * candidates.length)];
-          left = deco.left;
-          right = deco.right;
-        } else {
-          const leftDeco = candidates[Math.floor(Math.random() * candidates.length)];
-          const rightDeco = candidates[Math.floor(Math.random() * candidates.length)];
-          left = leftDeco.left;
+  // 3. 构建待应用的修饰队列
+  let queue = [...specifiedQueue];
+
+  // 4. 构建可用于随机选择的候选池（必须是启用的分类，且用户没有指定 "none" 禁用）
+  const randomPool = allAffixes.filter(a => {
+    const isEnabled = config.enabledTypes?.[a.type] ?? true;
+    const isNone = specified[a.type] === "none";
+    return isEnabled && !isNone;
+  });
+
+  // 如果队列长度小于目标迭代次数，从候选池中随机补充
+  if (queue.length > actualIterations) {
+    // 缩减到目标次数（同核心变换一致，截断）
+    queue = queue.slice(0, actualIterations);
+  } else if (queue.length < actualIterations && randomPool.length > 0) {
+    while (queue.length < actualIterations) {
+      const idx = Math.floor(Math.random() * randomPool.length);
+      queue.push({ ...randomPool[idx] });
+    }
+  }
+
+  // 5. 对最终的队列进行随机打乱（Shuffle），实现“随机组合选择”和“随机顺序嵌套包裹”
+  if (queue.length > 1) {
+    for (let i = queue.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = queue[i];
+      queue[i] = queue[j];
+      queue[j] = temp;
+    }
+  }
+
+  // 6. 依次应用队列中的每个修饰
+  let current = text;
+  for (const item of queue) {
+    let left = item.left;
+    let right = item.right;
+
+    // 特殊处理 martian 分类下的混搭模式
+    if (item.type === "martian") {
+      const specifiedVal = specified["martian"];
+      let mode = config.martianDecoratorMode ?? "both";
+      const optVal = specifiedVal || decorOption;
+      if (optVal === "mix") {
+        mode = "mix";
+      } else if (optVal === "pair") {
+        mode = "pair";
+      }
+
+      let isPair = true;
+      if (mode === "mix") {
+        isPair = false;
+      } else if (mode === "pair") {
+        isPair = true;
+      } else {
+        isPair = Math.random() < 0.5;
+      }
+
+      if (!isPair) {
+        // 随机再挑选一个作为右侧包边
+        const martianCandidates = allAffixes.filter(a => a.type === "martian");
+        if (martianCandidates.length > 0) {
+          const rightDeco = martianCandidates[Math.floor(Math.random() * martianCandidates.length)];
           right = rightDeco.right;
         }
-      } else {
-        const deco = candidates[Math.floor(Math.random() * candidates.length)];
-        left = deco.left;
-        right = deco.right;
       }
     }
 
@@ -331,7 +338,7 @@ function applyTransformers(
   }
 
   // 计算最大限制，配置上限不能超过硬上限 10
-  const configMax = Math.min(config.maxIterations ?? 3, 10);
+  const configMax = Math.min(config.maxIterations ?? 1, 10);
 
   // 计算实际需要执行的迭代次数
   let actualIterations: number;
@@ -448,7 +455,8 @@ export function apply(ctx: Context, config: Config) {
     .option("affix", "-a <affix:string>    指定特定类型的修饰符 (格式为 type:value，如 vip:1,martian:none)")
     .option("trans", "-t <trans:string>    指定 [T1-T4] 核心变换 (支持逗号分隔的代号如 trad,mart，none 禁用)")
     .option("decor", "-d <decor:string>    控制火星包边左右修饰符模式 (none 禁用，mix 随机混搭，pair 对称配对)")
-    .option("iter", "-i <iter:number>      指定叠加迭代次数 (可突破配置上限，硬上限 10 次)")
+    .option("iter", "-i <iter:number>      指定核心变换的叠加迭代次数 (可突破配置上限，硬上限 10 次)")
+    .option("affixIter", "-y <affixIter:number> 指定修饰与外挂层的叠加迭代次数 (可突破配置上限，硬上限 10 次)")
     .option("list", "-l                    显示支持的变换样式、修饰与外挂分类列表及编号代号")
     .example("subid 雪芝麻糊 -p 1 -s none -t trad -d none  (固定前置挂件，禁用后缀，应用简转繁核心变换且禁用火星包边)")
     .action(async ({ options, session }, keyword) => {
@@ -487,7 +495,7 @@ export function apply(ctx: Context, config: Config) {
         specified["suffix"] = options.suffix;
       }
 
-      const finalResult = applyAffixes(processed, specified, options.decor, config);
+      const finalResult = applyAffixes(processed, specified, options.decor, config, options.affixIter);
       return finalResult;
     });
 
