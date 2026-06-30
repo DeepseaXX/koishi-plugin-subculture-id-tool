@@ -13,40 +13,37 @@ export const usage = `
 生成一个次文化 ID 会依次经历以下两个处理层级：
 
 1. **核心变换层 (Core Transformation)**：对关键词主体字形进行样式形变
-   - **[T1] 简转繁 (Traditional)**（代号: \`t1\` / \`trad\` / \`1\`）
-     - *示例*：\`雪芝麻糊\` ➔ \`雪芝麻糊\`
-   - **[T2] 火星文 (Martian)**（代号: \`t2\` / \`mart\` / \`2\`）
-     - *示例*：\`芝麻\` ➔ \`芝麻\`
-   - **[T3] 拼音化 (Pinyin)**（代号: \`t3\` / \`piny\` / \`3\`）
-     - *示例*：\`雪\` ➔ \`★xue★\`
-   - **[T4] 极客文 (Leet)**（代号: \`t4\` / \`leet\` / \`4\`）
-     - *示例*：\`芝麻\` ➔ \`zh1ゞma\`
-   - **[T0] 不做处理 (None)**：不改变字形，跳过变换
+| 核心层级 | 代号选项 | 效果示例 |
+| :--- | :--- | :--- |
+| **[T1] 简转繁 (Traditional)** | \`t1\` / \`trad\` / \`1\` | \`雪芝麻糊\` ➔ \`雪芝麻糊\` |
+| **[T2] 火星文 (Martian)** | \`t2\` / \`mart\` / \`2\` | \`芝麻\` ➔ \`芝麻\` |
+| **[T3] 拼音化 (Pinyin)** | \`t3\` / \`piny\` / \`3\` | \`雪\` ➔ \`★xue★\` |
+| **[T4] 极客文 (Leet)** | \`t4\` / \`leet\` / \`4\` | \`芝麻\` ➔ \`zh1ゞma\` |
+| **[T0] 不做处理 (None)** | \`t0\` / \`none\` / \`0\` | 不改变字形，跳过变换 |
 
-2. **修饰与外挂层 (Decorations & Affixes)**：在主体文字首尾添加各类修饰词或外挂件
-   - **前置挂件 (\`prefix\`)**：在最左侧添加前缀装饰字符。
-     - *示例*：\`[prefix]雪芝麻糊\` ➔ \`ʚ雪芝麻糊\`
-   - **后置挂件 (\`suffix\`)**：在最右侧添加后缀装饰字符。
-     - *示例*：\`雪芝麻糊[suffix]\` ➔ \`雪芝麻糊o7\`
-   - **火星包边 (\`martian\`)**：在字符左右包裹对应的火星符号，支持对称与随机混搭。
-     - *示例*：\`[martian]雪芝麻糊[martian]\` ➔ \`✿雪芝麻糊✿\` 或 \`ゞ雪芝麻糊•\`
-   - **自定义分类 (\`custom\`)**：如 \`vip\` 等自定义分类首尾对。
-     - *示例*：\`--affix vip:1\` ➔ \`[VIP]雪芝麻糊\`
+2. **修饰与外挂层 (Decorations & Affixes)**：在已完成核心变换的文字两端嵌套各类首尾修饰符
+| 修饰层级 | 代号选项 | 效果示例 |
+| :--- | :--- | :--- |
+| **[D1] 前置挂件 (Prefix)** | \`d1\` / \`pref\` / \`1\` | \`[prefix]雪芝麻\` ➔ \`ʚ雪芝麻\` |
+| **[D2] 后置挂件 (Suffix)** | \`d2\` / \`suff\` / \`2\` | \`雪芝麻[suffix]\` ➔ \`雪芝麻o7\` |
+| **[D3] 火星包边 (Martian)** | \`d3\` / \`mart\` / \`3\` | \`[martian]雪芝麻[martian]\` ➔ \`✿雪芝麻✿\` 或 \`ゞ雪芝麻•\` |
+| **[D0] 不做处理 (None)** | \`d0\` / \`none\` / \`0\` | 不做任何修饰，保留原样 |
 
 ---
 
 ### 🌟 常用指令
-- **subid [关键词]**：生成次文化 ID。
-  - *-p, --prefix <prefix>*：快捷指定 **前置挂件**（输入 1-N 选用预设，\`none\` 禁用，或直接输入自定义文本）。
-  - *-s, --suffix <suffix>*：快捷指定 **后缀挂件**（输入 1-N 选用预设，\`none\` 禁用，或直接输入自定义文本）。
-  - *-a, --affix <affix>*：指定特定类型的修饰符（格式为 \`type:value\`，如 \`vip:1,martian:none\`）。
-  - *-t, --trans <trans>*：指定 **核心变换** 样式与叠加顺序（支持逗号分隔的代号如 \`t1,t2\`，或连续的数字如 \`12\`，或 \`none\` 禁用）。
-  - *-c, --core-mode <coreMode>*：指定 **核心变换模式**（\`each\`: 逐字处理，\`all\`: 整段处理）。
-  - *-d, --decor <decor>*：快捷控制 **火星包边** 点缀效果（\`none\` 禁用，\`mix\` 混搭，\`pair\` 对齐）。
-  - *-i, --iter <iter>*：指定核心变换的叠加迭代次数（1-10 次，默认从配置读取）。
-  - *-y, --affix-iter <affixIter>*：指定修饰与外挂层的叠加迭代次数（1-10 次，默认从配置读取）。
-  - *-l, --list*：展示支持的变换样式、修饰与外挂分类列表及编号代号。
-- **subid-list**：查看支持的列表及编号代号。
+- **subid [关键词]**：生成次文化 ID（指令后的关键词可使用引号包裹以支持包含空格或换行的文本，支持单双及中英文引号，如 \`subid “雪 芝 麻”\`）。
+  - **返回列表选项**
+    - *-l, --list*：展示支持的变换样式、修饰与外挂分类列表及编号代号。
+  - **核心变换控制 [T层]**
+    - *-i, --iter <iter>*：指定核心变换的叠加迭代次数（候选: \`1-10\` 之间的数字，默认从配置读取）。
+    - *-t, --trans <trans>*：指定核心变换与叠加顺序（支持逗号分隔，或无逗号纯数字如 \`12\`。候选: \`t1\`/\`trad\`/\`1\` (简转繁)、\`t2\`/\`mart\`/\`2\` (火星文)、\`t3\`/\`piny\`/\`3\` (拼音化)、\`t4\`/\`leet\`/\`4\` (极客文)、\`none\`/\`0\` (不做处理)）。
+    - *-c, --core-mode <coreMode>*：指定核心变换处理模式（候选: \`each\` 逐字处理，\`all\` 整段处理）。
+  - **修饰与外挂控制 [D层]**
+    - *-y, --affix-iter <affixIter>*：指定修饰与外挂层的叠加迭代次数（候选: \`1-10\` 之间的数字，默认从配置读取）。
+    - *-d, --decor <decor>*：指定特定类型的修饰符（格式为 \`type:value\`，多项逗号分隔。\`type\` 候选: \`d1\`/\`prefix\`、\`d2\`/\`suffix\`、\`d3\`/\`martian\` 或自定义分类；\`value\` 候选: \`none\` 禁用，或自定义文本。如 \`d1:ʚ,d2:none\`）。
+    - *-m, --martian <martian>*：快捷控制火星包边左右配对模式（候选: \`none\` 禁用，\`mix\` 随机混搭，\`pair\` 对称配对）。
+- **subid-list**：查看支持 of 列表及编号代号。
 
 ---
 
@@ -76,6 +73,10 @@ export interface Config {
   weightT2?: number;
   weightT3?: number;
   weightT4?: number;
+  weightD0?: number;
+  weightD1?: number;
+  weightD2?: number;
+  weightD3?: number;
   martianDecoratorMode?: 'pair' | 'mix' | 'both';
   enabledTypes?: Record<string, boolean>;
   customAffixes?: CustomAffix[];
@@ -85,10 +86,10 @@ export interface Config {
 export const Config: Schema<Config> =
   Schema.intersect([
     Schema.object({
-      maxIterations: Schema.number().default(1).min(0).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
+      maxIterations: Schema.number().default(2).min(0).max(10).description("默认随机核心变换时的最大叠加迭代次数上限 (硬上限 10 次)"),
       coreTransformMode: Schema.union([
-        Schema.const('each').description('对每个文字分别处理不同的类型 (逐字处理)'),
-        Schema.const('all').description('对所有文字做同一类型的处理 (整段处理)'),
+        Schema.const('each').description('对每个文字应用不同类型的变换 (逐字处理)'),
+        Schema.const('all').description('对所有文字应用同一类型的变换 (整段处理)'),
       ]).default('each').description("核心变换模式 (默认逐字处理)"),
       enableTraditional: Schema.boolean().default(true).description("是否启用 [T1] 简转繁"),
       enableMartian: Schema.boolean().default(true).description("是否启用 [T2] 火星文"),
@@ -101,12 +102,16 @@ export const Config: Schema<Config> =
       weightT4: Schema.number().default(1).min(0).description("极客文 [T4] 的生效权重"),
     }).description("1️⃣ 核心变换层 (Core Transformation)"),
     Schema.object({
-      maxAffixIterations: Schema.number().default(2).min(0).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
+      maxAffixIterations: Schema.number().default(3).min(0).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
       enabledTypes: Schema.dict(Schema.boolean()).default({
         prefix: true,
         suffix: true,
         martian: true,
-      }).description("启用的修饰/外挂分类（内置分类 prefix, suffix, martian，也可以在此添加并启用自定义分类）"),
+      }).description("启用的修饰/外挂分类（内置分类对应：prefix ➔ [D1] 前置挂件，suffix ➔ [D2] 后置挂件，martian ➔ [D3] 火星包边。也可以在此添加并启用自定义分类）"),
+      weightD0: Schema.number().default(1).min(0).description("不做处理 [D0] 的生效权重"),
+      weightD1: Schema.number().default(1).min(0).description("前置挂件 [D1] 的生效权重"),
+      weightD2: Schema.number().default(1).min(0).description("后置挂件 [D2] 的生效权重"),
+      weightD3: Schema.number().default(1).min(0).description("火星包边 [D3] 的生效权重"),
       martianDecoratorMode: Schema.union([
         Schema.const('pair').description('固定配对'),
         Schema.const('mix').description('随机混搭'),
@@ -204,8 +209,53 @@ function getAvailableAffixes(config: Config): AffixItem[] {
   return [...BUILTIN_AFFIXES, ...customList];
 }
 
+// 根据权重随机选择修饰分类类型 (包含 D0 none)
+function getRandomAffixType(config: Config, specified: Record<string, string>): string {
+  const items: { type: string; weight: number }[] = [];
+
+  // D0 (none)
+  items.push({ type: "none", weight: config.weightD0 ?? 1 });
+
+  // D1 (prefix)
+  if ((config.enabledTypes?.prefix ?? true) && specified.prefix !== "none") {
+    items.push({ type: "prefix", weight: config.weightD1 ?? 1 });
+  }
+  // D2 (suffix)
+  if ((config.enabledTypes?.suffix ?? true) && specified.suffix !== "none") {
+    items.push({ type: "suffix", weight: config.weightD2 ?? 1 });
+  }
+  // D3 (martian)
+  if ((config.enabledTypes?.martian ?? true) && specified.martian !== "none") {
+    items.push({ type: "martian", weight: config.weightD3 ?? 1 });
+  }
+
+  // 额外自定义类型，如果启用的话，默认权重为 1
+  const enabledTypes = config.enabledTypes || { prefix: true, suffix: true, martian: true };
+  for (const type of Object.keys(enabledTypes)) {
+    if (type !== "prefix" && type !== "suffix" && type !== "martian") {
+      if (enabledTypes[type] && specified[type] !== "none") {
+        items.push({ type, weight: 1 });
+      }
+    }
+  }
+
+  const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+  if (totalWeight <= 0) {
+    return "none";
+  }
+
+  let r = Math.random() * totalWeight;
+  for (const item of items) {
+    if (r < item.weight) {
+      return item.type;
+    }
+    r -= item.weight;
+  }
+  return "none";
+}
+
 // 统一应用所有启用的修饰层/外挂层
-function applyAffixes(
+export function applyAffixes(
   text: string,
   specified: Record<string, string>,
   decorOption: string | undefined,
@@ -224,24 +274,19 @@ function applyAffixes(
       continue;
     }
 
-    const candidates = allAffixes.filter(a => a.type === type);
     // 如果是 martian 的特殊模式选项 (mix/pair/both)，先不作为固定值处理，让其参与后面的随机/计算逻辑
     const isModeOption = type === "martian" && (val === "mix" || val === "pair" || val === "both");
     if (isModeOption) {
       continue;
     }
 
-    // 解析指定的值
-    const index = parseInt(val, 10);
-    if (!isNaN(index) && index >= 1 && index <= candidates.length) {
-      specifiedQueue.push({ ...candidates[index - 1] });
+    // 去掉 1-N 数字预设编号映射，直接作为自定义文本处理
+    if (type === "suffix") {
+      specifiedQueue.push({ left: "", right: val, type });
+    } else if (type === "martian") {
+      specifiedQueue.push({ left: val, right: val, type });
     } else {
-      // 自定义文本
-      if (type === "suffix") {
-        specifiedQueue.push({ left: "", right: val, type });
-      } else {
-        specifiedQueue.push({ left: val, right: "", type });
-      }
+      specifiedQueue.push({ left: val, right: "", type });
     }
   }
 
@@ -257,21 +302,24 @@ function applyAffixes(
   // 3. 构建待应用的修饰队列
   let queue = [...specifiedQueue];
 
-  // 4. 构建可用于随机选择的候选池（必须是启用的分类，且用户没有指定 "none" 禁用）
-  const randomPool = allAffixes.filter(a => {
-    const isEnabled = config.enabledTypes?.[a.type] ?? true;
-    const isNone = specified[a.type] === "none";
-    return isEnabled && !isNone;
-  });
-
-  // 如果队列长度小于目标迭代次数，从候选池中随机补充
+  // 如果队列长度小于目标迭代次数，从候选池中根据权重随机补充
   if (queue.length > actualIterations) {
     // 缩减到目标次数（同核心变换一致，截断）
     queue = queue.slice(0, actualIterations);
-  } else if (queue.length < actualIterations && randomPool.length > 0) {
+  } else if (queue.length < actualIterations) {
     while (queue.length < actualIterations) {
-      const idx = Math.floor(Math.random() * randomPool.length);
-      queue.push({ ...randomPool[idx] });
+      const selectedType = getRandomAffixType(config, specified);
+      if (selectedType === "none") {
+        queue.push({ left: "", right: "", type: "none" });
+      } else {
+        const candidates = allAffixes.filter(a => a.type === selectedType);
+        if (candidates.length > 0) {
+          const idx = Math.floor(Math.random() * candidates.length);
+          queue.push({ ...candidates[idx] });
+        } else {
+          queue.push({ left: "", right: "", type: "none" });
+        }
+      }
     }
   }
 
@@ -402,7 +450,7 @@ function getRandomTransformer(config: Config): number {
 }
 
 // 应用核心变换组合
-function applyTransformers(
+export function applyTransformers(
   text: string,
   optionVal: string | undefined,
   iterOption: number | undefined,
@@ -498,7 +546,7 @@ function applyTransformers(
 }
 
 // 获取列表展示信息
-function getListMessage(config: Config): string {
+export function getListMessage(config: Config): string {
   const isEnabledStr = (num: number) => isTransEnabled(num, config) ? "" : " (已全局禁用)";
 
   // 计算权重和几率
@@ -511,6 +559,27 @@ function getListMessage(config: Config): string {
 
   const pct = (w: number) => total > 0 ? `${((w / total) * 100).toFixed(1)}%` : "0%";
 
+  // 计算修饰外挂层权重和几率
+  const wd0 = config.weightD0 ?? 1;
+  const wd1 = (config.enabledTypes?.prefix ?? true) ? (config.weightD1 ?? 1) : 0;
+  const wd2 = (config.enabledTypes?.suffix ?? true) ? (config.weightD2 ?? 1) : 0;
+  const wd3 = (config.enabledTypes?.martian ?? true) ? (config.weightD3 ?? 1) : 0;
+
+  // 加上自定义类型的权重
+  let totalD = wd0 + wd1 + wd2 + wd3;
+  const enabledTypes = config.enabledTypes || { prefix: true, suffix: true, martian: true };
+  const customTypes = Object.keys(enabledTypes).filter(t => t !== 'prefix' && t !== 'suffix' && t !== 'martian');
+  const customWeights: Record<string, number> = {};
+  for (const type of customTypes) {
+    if (enabledTypes[type]) {
+      customWeights[type] = 1; // 自定义分类默认权重为 1
+      totalD += 1;
+    }
+  }
+
+  const pctD = (w: number) => totalD > 0 ? `${((w / totalD) * 100).toFixed(1)}%` : "0%";
+  const isAffixEnabledStr = (type: string) => (config.enabledTypes?.[type] ?? true) ? "" : " (已全局禁用)";
+
   let msg = "✨ 次文化 ID 生成器 支持列表 ✨\n\n";
   msg += "1️⃣ 【核心变换层 Core Transformation】(使用 -t 选项或代号指定)\n";
   msg += `• [T0] 不做处理 - 权重: ${w0} (几率: ${pct(w0)})\n`;
@@ -519,7 +588,16 @@ function getListMessage(config: Config): string {
   msg += `• [T3] 拼音化 (piny) - 权重: ${w3} (几率: ${pct(w3)})${isEnabledStr(3)}\n`;
   msg += `• [T4] 极客文 (leet) - 权重: ${w4} (几率: ${pct(w4)})${isEnabledStr(4)}\n\n`;
 
-  msg += "2️⃣ 【修饰与外挂层 Decorations & Affixes】(可以使用 -p, -s 或 --affix 指定)\n";
+  msg += "2️⃣ 【修饰与外挂层 Decorations & Affixes】(可以使用 --affix 指定)\n";
+  msg += `• [D0] 不做处理 - 权重: ${wd0} (几率: ${pctD(wd0)})\n`;
+  msg += `• [D1] 前置挂件 (prefix) - 权重: ${wd1} (几率: ${pctD(wd1)})${isAffixEnabledStr('prefix')}\n`;
+  msg += `• [D2] 后置挂件 (suffix) - 权重: ${wd2} (几率: ${pctD(wd2)})${isAffixEnabledStr('suffix')}\n`;
+  msg += `• [D3] 火星包边 (martian) - 权重: ${wd3} (几率: ${pctD(wd3)})${isAffixEnabledStr('martian')}\n`;
+  for (const type of customTypes) {
+    const w = customWeights[type] || 0;
+    msg += `• [自定义] ${type} - 权重: ${w} (几率: ${pctD(w)})${isAffixEnabledStr(type)}\n`;
+  }
+  msg += "\n";
 
   const allAffixes = getAvailableAffixes(config);
   const allTypes = Array.from(new Set(allAffixes.map(a => a.type)));
@@ -555,9 +633,8 @@ function getListMessage(config: Config): string {
     msg += "\n";
   }
 
-  msg += "💡 提示：使用 -p, -s 快捷指定前置/后置挂件，输入 none 禁用某项。\n";
-  msg += "💡 新增：使用 --affix 指定自定义类型，例如 --affix vip:1。\n";
-  msg += "📝 示例：subid 雪芝麻糊 -p 1 -s none -t trad --affix martian:none";
+  msg += "💡 提示：使用 -d, --decor 指定各修饰与外挂层，输入 none 禁用某项。代号 d1 代表 prefix，d2 代表 suffix，d3 代表 martian，如 -d d1:1,d2:none\n";
+  msg += "📝 示例：subid 雪芝麻糊 -t trad -d d1:1,d2:none,martian:none";
   return msg;
 }
 
@@ -566,54 +643,84 @@ export function apply(ctx: Context, config: Config) {
 
   ctx.command("subid [keyword]", "次文化 ID 生成器")
     .alias("subculture-id")
-    .option("prefix", "-p <prefix:string>  指定前置挂件 (输入编号选用预设，none 禁用，或自定义)")
-    .option("suffix", "-s <suffix:string>  指定后置挂件 (输入编号选用预设，none 禁用，或自定义)")
-    .option("affix", "-a <affix:string>    指定特定类型的修饰符 (格式为 type:value，如 vip:1,martian:none)")
-    .option("trans", "-t <trans:string>    指定 [T1-T4] 核心变换 (支持逗号分隔的代号如 trad,mart，或无逗号纯数字如 12，none 禁用)")
-    .option("coreMode", "-c <coreMode:string> 指定核心变换处理模式 (each: 逐字处理, all: 整段处理)")
-    .option("decor", "-d <decor:string>    控制火星包边左右修饰符模式 (none 禁用，mix 随机混搭，pair 对称配对)")
-    .option("iter", "-i <iter:number>      指定核心变换的叠加迭代次数 (可突破配置上限，硬上限 10 次)")
-    .option("affixIter", "-y <affixIter:number> 指定修饰与外挂层的叠加迭代次数 (可突破配置上限，硬上限 10 次)")
     .option("list", "-l                    显示支持的变换样式、修饰与外挂分类列表及编号代号")
-    .example("subid 雪芝麻糊 -p 1 -s none -t trad -d none  (固定前置挂件，禁用后缀，应用简转繁核心变换且禁用火星包边)")
-    .example("subid 雪芝麻糊 -t 12 -c all                 (对所有文字整体应用简转繁和火星文变换)")
-    .action(async ({ options, session }, keyword) => {
+    .option("iter", "-i <iter:number>      指定核心变换的叠加迭代次数 (候选: 1-10 之间的数字，默认从配置读取)")
+    .option("trans", "-t <trans:string>    指定核心变换与叠加顺序 (支持逗号分隔，或无逗号纯数字如 12。候选: t1/trad/1 (简转繁), t2/mart/2 (火星文), t3/piny/3 (拼音化), t4/leet/4 (极客文), none/0 (不做处理))")
+    .option("coreMode", "-c <coreMode:string> 指定核心变换处理模式 (候选: each 逐字处理, all 整段处理)")
+    .option("affixIter", "-y <affixIter:number> 指定修饰与外挂层的叠加迭代次数 (候选: 1-10 之间的数字，默认从配置读取)")
+    .option("decor", "-d <decor:string>    指定特定类型的修饰符 (格式为 type:value，多项逗号分隔。type 候选: d1/prefix, d2/suffix, d3/martian，或自定义分类；value 候选: none 禁用，或自定义文本。如 d1:ʚ,d2:none)")
+    .option("martian", "-m <martian:string>  控制火星包边左右配对模式 (候选: none 禁用, mix 随机混搭, pair 对称配对)")
+    .example("subid 雪芝麻糊 -d d1:ʚ,d2:none -t trad -m none (固定前置挂件，禁用后缀，应用简转繁核心变换且禁用火星包边)")
+    .example("subid 雪芝麻糊 -t 12 -c all                           (对所有文字整体应用简转繁和火星文变换)")
+    .action(async (argv, keyword) => {
+      const { options, session } = argv;
       if (options.list) {
         return getListMessage(config);
       }
 
       let targetKeyword = keyword;
+
+      const hasQuotes = (text: string) => /["'“”‘’]/.test(text);
+      const rawSource = (argv as any).source || session?.content || "";
+      if (rawSource && hasQuotes(rawSource)) {
+        let rawContent = rawSource;
+        const cmdName = argv.command?.name;
+        if (cmdName && rawContent.startsWith(cmdName)) {
+          rawContent = rawContent.slice(cmdName.length).trim();
+        } else {
+          rawContent = rawContent.replace(/^\S+\s*/, '');
+        }
+        const quoteRegex = /(?:"([^"]*)"|'([^']*)'|“([^”]*)”|‘([^’]*)’)/s;
+        const match = rawContent.match(quoteRegex);
+        if (match) {
+          targetKeyword = match[1] ?? match[2] ?? match[3] ?? match[4];
+        }
+      }
+
       if (!targetKeyword) {
         await session.send("请输入关键词以生成 ID：");
         const replied = await session.prompt(30000);
         if (!replied) {
           return "等待超时（30秒内未收到回复）";
         }
-        targetKeyword = replied;
+        const quoteRegex = /(?:"([^"]*)"|'([^']*)'|“([^”]*)”|‘([^’]*)’)/s;
+        const match = replied.match(quoteRegex);
+        if (match) {
+          targetKeyword = match[1] ?? match[2] ?? match[3] ?? match[4];
+        } else {
+          targetKeyword = replied;
+        }
       }
 
-      const processed = applyTransformers(targetKeyword, options.trans, options.iter, options.decor, config, options.coreMode);
+      const processed = applyTransformers(targetKeyword, options.trans, options.iter, options.martian, config, options.coreMode);
 
       const specified: Record<string, string> = {};
-      if (options.affix) {
-        const parts = options.affix.split(",");
+      if (options.decor) {
+        const parts = options.decor.split(",");
         for (const part of parts) {
           const colonIndex = part.indexOf(":");
           if (colonIndex > 0) {
-            const t = part.slice(0, colonIndex).trim();
+            let t = part.slice(0, colonIndex).trim().toLowerCase();
             const val = part.slice(colonIndex + 1).trim();
-            specified[t] = val;
+
+            if (t === "d1" || t === "pref" || t === "1") {
+              t = "prefix";
+            } else if (t === "d2" || t === "suff" || t === "2") {
+              t = "suffix";
+            } else if (t === "d3" || t === "mart" || t === "3") {
+              t = "martian";
+            } else if (t === "d0" || t === "none" || t === "0") {
+              t = "none";
+            }
+
+            if (t !== "none") {
+              specified[t] = val;
+            }
           }
         }
       }
-      if (options.prefix !== undefined) {
-        specified["prefix"] = options.prefix;
-      }
-      if (options.suffix !== undefined) {
-        specified["suffix"] = options.suffix;
-      }
 
-      const finalResult = applyAffixes(processed, specified, options.decor, config, options.affixIter);
+      const finalResult = applyAffixes(processed, specified, options.martian, config, options.affixIter);
       return finalResult;
     });
 
