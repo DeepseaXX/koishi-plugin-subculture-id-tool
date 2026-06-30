@@ -28,7 +28,7 @@ description: 指引如何在对次文化 ID 生成器插件进行修改后，规
 * 这会将最新的代码发布包发布到 NPM 注册表，并在终端输出详细的 verbose 日志。
 
 ### 4. 提交并推送至 GitHub
-完成 NPM 发布后，及时将版本修改及代码提交并推送到远程 GitHub 仓库：
+完成 NPM 发布后，及时将版本修改及代码提交并推送到远程 GitHub 仓库。**注意：此步骤必须在插件子目录 `d:\CODE\koishi-app\external\subculture-id-tool` 下进行**：
 * 运行指令：
   ```bash
   git add .

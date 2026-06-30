@@ -3,14 +3,16 @@ import {
   CHAR_DB,
   BUILTIN_AFFIXES,
   LEET_MAP,
-  AffixItem
+  AffixItem,
+  DECOR_SYMBOLS
 } from "./dict";
+export { DECOR_SYMBOLS };
 
 export const name = "subculture-id-tool";
 
 export const usage = `
-## 🏷️ ID 生成双层级体系
-生成一个次文化 ID 会依次经历以下两个处理层级：
+## 🏷️ ID 生成三层级体系
+生成一个次文化 ID 会依次经历以下三个处理层级：
 
 1. **核心变换层 (Core Transformation)**：对关键词主体字形进行样式形变
 | 核心层级 | 代号选项 | 效果示例 |
@@ -21,13 +23,21 @@ export const usage = `
 | **[T4] 极客文 (Leet)** | \`t4\` / \`leet\` / \`4\` | \`芝麻\` ➔ \`zh1ゞma\` |
 | **[T0] 不做处理 (None)** | \`t0\` / \`none\` / \`0\` | 不改变字形，跳过变换 |
 
-2. **修饰与外挂层 (Decorations & Affixes)**：在已完成核心变换的文字两端嵌套各类首尾修饰符
+2. **字内修饰层 (Decorations)**：在已进行核心变换的拼音或极客文处理中注入各类小点缀修饰符
 | 修饰层级 | 代号选项 | 效果示例 |
 | :--- | :--- | :--- |
-| **[D1] 前置挂件 (Prefix)** | \`d1\` / \`pref\` / \`1\` | \`[prefix]雪芝麻\` ➔ \`ʚ雪芝麻\` |
-| **[D2] 后置挂件 (Suffix)** | \`d2\` / \`suff\` / \`2\` | \`雪芝麻[suffix]\` ➔ \`雪芝麻o7\` |
-| **[D3] 火星包边 (Martian)** | \`d3\` / \`mart\` / \`3\` | \`[martian]雪芝麻[martian]\` ➔ \`✿雪芝麻✿\` 或 \`ゞ雪芝麻•\` |
-| **[D0] 不做处理 (None)** | \`d0\` / \`none\` / \`0\` | 不做任何修饰，保留原样 |
+| **[D1] 拼音连接符 (Pinyin Sep)** | \`d1\` / \`pinyin-sep\` / \`1\` | \`雪\` ➔ \`x_u_e\` |
+| **[D2] 拼音首尾包裹 (Pinyin Encl)** | \`d2\` / \`pinyin-enc\` / \`2\` | \`雪\` ➔ \`★xue★\` |
+| **[D3] 极客文连接符 (Leet Sep)** | \`d3\` / \`leet-sep\` / \`3\` | \`芝麻\` ➔ \`zh1ゞma\` |
+| **[D0] 不做修饰 (None)** | \`d0\` / \`none\` / \`0\` | 不使用任何字内修饰，保留字母紧凑 |
+
+3. **外挂层 (Affixes)**：在已完成核心变换和字内修饰的文字两端嵌套各类首尾外挂词缀
+| 外挂层级 | 代号选项 | 效果示例 |
+| :--- | :--- | :--- |
+| **[A1] 前置外挂 (Prefix)** | \`a1\` / \`pref\` / \`1\` | \`[prefix]雪芝麻\` ➔ \`ʚ雪芝麻\` |
+| **[A2] 后置外挂 (Suffix)** | \`a2\` / \`suff\` / \`2\` | \`雪芝麻[suffix]\` ➔ \`雪芝麻o7\` |
+| **[A3] 火星包边 (Martian)** | \`a3\` / \`mart\` / \`3\` | \`[martian]雪芝麻[martian]\` ➔ \`✿雪芝麻✿\` 或 \`ゞ雪芝麻•\` |
+| **[A0] 不做处理 (None)** | \`a0\` / \`none\` / \`0\` | 不做任何修饰，保留原样 |
 
 ---
 
@@ -39,11 +49,13 @@ export const usage = `
     - *-i, --iter <iter>*：指定核心变换的叠加迭代次数（候选: \`1-10\` 之间的数字，默认从配置读取）。
     - *-t, --trans <trans>*：指定核心变换与叠加顺序（支持逗号分隔，或无逗号纯数字如 \`12\`。候选: \`t1\`/\`trad\`/\`1\` (简转繁)、\`t2\`/\`mart\`/\`2\` (火星文)、\`t3\`/\`piny\`/\`3\` (拼音化)、\`t4\`/\`leet\`/\`4\` (极客文)、\`none\`/\`0\` (不做处理)）。
     - *-c, --core-mode <coreMode>*：指定核心变换处理模式（候选: \`each\` 逐字处理，\`all\` 整段处理）。
-  - **修饰与外挂控制 [D层]**
-    - *-y, --affix-iter <affixIter>*：指定修饰与外挂层的叠加迭代次数（候选: \`1-10\` 之间的数字，默认从配置读取）。
-    - *-d, --decor <decor>*：指定特定类型的修饰符（格式为 \`type:value\`，多项逗号分隔。\`type\` 候选: \`d1\`/\`prefix\`、\`d2\`/\`suffix\`、\`d3\`/\`martian\` 或自定义分类；\`value\` 候选: \`none\` 禁用，或自定义文本。如 \`d1:ʚ,d2:none\`）。
-    - *-m, --martian <martian>*：快捷控制火星包边左右配对模式（候选: \`none\` 禁用，\`mix\` 随机混搭，\`pair\` 对称配对）。
-- **subid-list**：查看支持 of 列表及编号代号。
+  - **字内修饰控制 [D层]**
+    - *-d, --decor <decor>*：指定特定类型的字内修饰（格式为 \`type:value\`，多项逗号分隔。\`type\` 候选: \`d1\`/\`pinyin-sep\`、\`d2\`/\`pinyin-enc\`、\`d3\`/\`leet-sep\`；\`value\` 候选: \`none\` 禁用，或自定义文本。如 \`d1:_,d2:★\`）。
+  - **外挂控制 [A层]**
+    - *-y, --affix-iter <affixIter>*：指定外挂层的叠加迭代次数（候选: \`1-10\` 之间的数字，默认从配置读取）。
+    - *-a, --affix <affix>*：指定特定类型的外挂词缀（格式为 \`type:value\`，多项逗号分隔。\`type\` 候选: \`a1\`/\`prefix\`、\`a2\`/\`suffix\`、\`a3\`/\`martian\` 或自定义分类；\`value\` 候选: \`none\` 禁用，或自定义文本。如 \`a1:ʚ,a2:none\`）。
+    - *-m, --martian <martian>*：快捷控制火星包边左右外挂模式（候选: \`none\` 禁用，\`mix\` 随机混搭，\`pair\` 对称配对）。
+- **subid-list**：查看支持列表及编号代号。
 
 ---
 
@@ -55,8 +67,6 @@ export const usage = `
 export interface CustomAffix {
   left?: string;
   right?: string;
-  prefix?: string; // 兼容旧版配置
-  suffix?: string; // 兼容旧版配置
   type?: string;   // 默认是 "prefix"
 }
 
@@ -73,14 +83,22 @@ export interface Config {
   weightT2?: number;
   weightT3?: number;
   weightT4?: number;
-  weightD0?: number;
-  weightD1?: number;
-  weightD2?: number;
-  weightD3?: number;
-  martianDecoratorMode?: 'pair' | 'mix' | 'both';
-  enabledTypes?: Record<string, boolean>;
-  customAffixes?: CustomAffix[];
+
+  // 2️⃣ 字内修饰层 (D层)
+  enablePinyinSeparator?: boolean;
+  enablePinyinEnclosure?: boolean;
+  enableLeetSeparator?: boolean;
+  customDecors?: string[];
+
+  // 3️⃣ 外挂层 (A层)
   maxAffixIterations?: number;
+  enabledTypes?: Record<string, boolean>;
+  weightA0?: number;
+  weightA1?: number;
+  weightA2?: number;
+  weightA3?: number;
+  martianAffixMode?: 'pair' | 'mix' | 'both';
+  customAffixes?: CustomAffix[];
 }
 
 export const Config: Schema<Config> =
@@ -102,28 +120,56 @@ export const Config: Schema<Config> =
       weightT4: Schema.number().default(1).min(0).description("极客文 [T4] 的生效权重"),
     }).description("1️⃣ 核心变换层 (Core Transformation)"),
     Schema.object({
-      maxAffixIterations: Schema.number().default(3).min(0).max(10).description("默认随机修饰与外挂时的最大叠加迭代次数上限 (硬上限 10 次)"),
+      enablePinyinSeparator: Schema.boolean().default(true).description("是否启用 [D1] 拼音连接符"),
+      enablePinyinEnclosure: Schema.boolean().default(true).description("是否启用 [D2] 拼音首尾包裹"),
+      enableLeetSeparator: Schema.boolean().default(true).description("是否启用 [D3] 极客文连接符"),
+      customDecors: Schema.array(Schema.string()).default([]).description("自定义额外字内修饰符列表"),
+    }).description("2️⃣ 字内修饰层 (Decorations)"),
+    Schema.object({
+      maxAffixIterations: Schema.number().default(3).min(0).max(10).description("默认随机外挂层叠加迭代次数上限 (硬上限 10 次)"),
       enabledTypes: Schema.dict(Schema.boolean()).default({
         prefix: true,
         suffix: true,
         martian: true,
-      }).description("启用的修饰/外挂分类（内置分类对应：prefix ➔ [D1] 前置挂件，suffix ➔ [D2] 后置挂件，martian ➔ [D3] 火星包边。也可以在此添加并启用自定义分类）"),
-      weightD0: Schema.number().default(1).min(0).description("不做处理 [D0] 的生效权重"),
-      weightD1: Schema.number().default(1).min(0).description("前置挂件 [D1] 的生效权重"),
-      weightD2: Schema.number().default(1).min(0).description("后置挂件 [D2] 的生效权重"),
-      weightD3: Schema.number().default(1).min(0).description("火星包边 [D3] 的生效权重"),
-      martianDecoratorMode: Schema.union([
+      }).description("启用的外挂分类（内置分类对应：prefix ➔ [A1] 前置外挂，suffix ➔ [A2] 后置外挂，martian ➔ [A3] 火星包边。也可以在此添加并启用自定义分类）"),
+      weightA0: Schema.number().default(1).min(0).description("不做处理 [A0] 的生效权重"),
+      weightA1: Schema.number().default(1).min(0).description("前置外挂 [A1] 的生效权重"),
+      weightA2: Schema.number().default(1).min(0).description("后置外挂 [A2] 的生效权重"),
+      weightA3: Schema.number().default(1).min(0).description("火星包边 [A3] 的生效权重"),
+      martianAffixMode: Schema.union([
         Schema.const('pair').description('固定配对'),
         Schema.const('mix').description('随机混搭'),
         Schema.const('both').description('混合模式（配对几率占 50%）'),
-      ]).default('both').description("火星包边左右修饰符模式"),
+      ]).default('both').description("火星包边左右外挂模式"),
       customAffixes: Schema.array(Schema.object({
-        left: Schema.string().default('').description('左侧修饰 / 前缀文字'),
-        right: Schema.string().default('').description('右侧修饰 / 后缀文字'),
+        left: Schema.string().default('').description('左侧外挂 / 前缀文字'),
+        right: Schema.string().default('').description('右侧外挂 / 后缀文字'),
         type: Schema.string().default('prefix').description('分类类型 (如 prefix, suffix, martian 或自定义分类)'),
-      })).role('table').default([]).description("自定义额外修饰与外挂对 列表"),
-    }).description("2️⃣ 修饰与外挂层 (Decorations & Affixes)"),
+      })).role('table').default([]).description("自定义额外外挂对 列表"),
+    }).description("3️⃣ 外挂层 (Affixes)"),
   ]);
+
+// 获取所有可用的字内修饰符
+function getAvailableDecors(config: Config): string[] {
+  return [...DECOR_SYMBOLS, ...(config.customDecors || [])];
+}
+
+// 解析字内修饰特定配置值
+function parseDecorOptionValue(decorOption: string | undefined, aliases: string[]): string | null {
+  if (!decorOption) return null;
+  const parts = decorOption.split(",");
+  for (const part of parts) {
+    const colonIdx = part.indexOf(":");
+    if (colonIdx > 0) {
+      const key = part.slice(0, colonIdx).trim().toLowerCase();
+      const val = part.slice(colonIdx + 1).trim();
+      if (aliases.map(a => a.toLowerCase()).includes(key)) {
+        return val === "none" ? "" : val;
+      }
+    }
+  }
+  return null;
+}
 
 // 预处理 1: 繁体化
 function transformTraditional(text: string): string {
@@ -140,7 +186,7 @@ function transformMartian(text: string): string {
 }
 
 // 预处理 3: 拼音化与特殊符号装饰
-function transformPinyin(text: string, decorOption?: string): string {
+function transformPinyin(text: string, config: Config, decorOption?: string): string {
   const pinyins: string[] = [];
   for (const char of text) {
     if (CHAR_DB[char]?.pinyin) {
@@ -152,23 +198,50 @@ function transformPinyin(text: string, decorOption?: string): string {
     }
   }
 
-  const separators = ["_", ".", "v", "o"];
-  const sep = separators[Math.floor(Math.random() * separators.length)];
+  // 1. 决定是否启用拼音连接符 [D1]
+  let sep = "";
+  const enableSep = config.enablePinyinSeparator ?? true;
+  const isD1Enabled = decorOption !== "none" && !decorOption?.includes("d1:none") && !decorOption?.includes("pinyin-sep:none");
 
+  if (enableSep && isD1Enabled) {
+    const decors = getAvailableDecors(config);
+    if (decors.length > 0) {
+      const specifiedD1 = parseDecorOptionValue(decorOption, ["d1", "pinyin-sep", "pinyinSeparator"]);
+      if (specifiedD1 !== null) {
+        sep = specifiedD1;
+      } else {
+        sep = decors[Math.floor(Math.random() * decors.length)];
+      }
+    }
+  }
+
+  // 2. 决定是否启用拼音首尾包裹 [D2]
   let start = "";
   let end = "";
-  if (decorOption !== "none") {
-    const startDecos = ["°", "★", "◇", "✿", ""];
-    const endDecos = ["°", "★", "◇", "✿", ""];
-    start = startDecos[Math.floor(Math.random() * startDecos.length)];
-    end = endDecos[Math.floor(Math.random() * endDecos.length)];
+  const enableEnc = config.enablePinyinEnclosure ?? true;
+  const isD2Enabled = decorOption !== "none" && !decorOption?.includes("d2:none") && !decorOption?.includes("pinyin-enc:none");
+
+  if (enableEnc && isD2Enabled) {
+    const decors = getAvailableDecors(config);
+    if (decors.length > 0) {
+      const specifiedD2 = parseDecorOptionValue(decorOption, ["d2", "pinyin-enc", "pinyinEnclosure"]);
+      if (specifiedD2 !== null) {
+        start = specifiedD2;
+        end = specifiedD2;
+      } else {
+        const startDecos = [...decors, ""];
+        const endDecos = [...decors, ""];
+        start = startDecos[Math.floor(Math.random() * startDecos.length)];
+        end = endDecos[Math.floor(Math.random() * endDecos.length)];
+      }
+    }
   }
 
   return `${start}${pinyins.join(sep)}${end}`;
 }
 
 // 预处理 4: Leetspeak 与字符加料
-function transformLeetAndDecorate(text: string, decorOption?: string): string {
+function transformLeetAndDecorate(text: string, config: Config, decorOption?: string): string {
   const parts: string[] = [];
   for (const char of text) {
     if (CHAR_DB[char]?.pinyin) {
@@ -184,49 +257,55 @@ function transformLeetAndDecorate(text: string, decorOption?: string): string {
       .join("");
   });
 
+  // 3. 决定是否启用极客文连接符 [D3]
   let inj = "";
-  if (decorOption !== "none") {
-    const injectors = ["ゞ", "✿", "★", "~", "•"];
-    inj = injectors[Math.floor(Math.random() * injectors.length)];
+  const enableLeetSep = config.enableLeetSeparator ?? true;
+  const isD3Enabled = decorOption !== "none" && !decorOption?.includes("d3:none") && !decorOption?.includes("leet-sep:none");
+
+  if (enableLeetSep && isD3Enabled) {
+    const decors = getAvailableDecors(config);
+    if (decors.length > 0) {
+      const specifiedD3 = parseDecorOptionValue(decorOption, ["d3", "leet-sep", "leetSeparator"]);
+      if (specifiedD3 !== null) {
+        inj = specifiedD3;
+      } else {
+        inj = decors[Math.floor(Math.random() * decors.length)];
+      }
+    }
   }
 
   return processed.join(inj);
 }
 
-// 获取所有可用的修饰词 (合并内置与自定义，并支持旧版本属性映射)
+// 获取所有可用的修饰词 (合并内置与自定义)
 function getAvailableAffixes(config: Config): AffixItem[] {
   const customList: AffixItem[] = (config.customAffixes || []).map(a => {
-    const left = a.left ?? a.prefix ?? "";
-    const right = a.right ?? a.suffix ?? "";
-    let type = a.type;
-    if (!type) {
-      if (a.prefix && !a.suffix) type = "prefix";
-      else if (a.suffix && !a.prefix) type = "suffix";
-      else type = "prefix"; // 默认
-    }
+    const left = a.left ?? "";
+    const right = a.right ?? "";
+    const type = a.type ?? "prefix";
     return { left, right, type };
   });
   return [...BUILTIN_AFFIXES, ...customList];
 }
 
-// 根据权重随机选择修饰分类类型 (包含 D0 none)
+// 根据权重随机选择外挂分类类型 (包含 A0 none)
 function getRandomAffixType(config: Config, specified: Record<string, string>): string {
   const items: { type: string; weight: number }[] = [];
 
-  // D0 (none)
-  items.push({ type: "none", weight: config.weightD0 ?? 1 });
+  // A0 (none)
+  items.push({ type: "none", weight: config.weightA0 ?? 1 });
 
-  // D1 (prefix)
+  // A1 (prefix)
   if ((config.enabledTypes?.prefix ?? true) && specified.prefix !== "none") {
-    items.push({ type: "prefix", weight: config.weightD1 ?? 1 });
+    items.push({ type: "prefix", weight: config.weightA1 ?? 1 });
   }
-  // D2 (suffix)
+  // A2 (suffix)
   if ((config.enabledTypes?.suffix ?? true) && specified.suffix !== "none") {
-    items.push({ type: "suffix", weight: config.weightD2 ?? 1 });
+    items.push({ type: "suffix", weight: config.weightA2 ?? 1 });
   }
-  // D3 (martian)
+  // A3 (martian)
   if ((config.enabledTypes?.martian ?? true) && specified.martian !== "none") {
-    items.push({ type: "martian", weight: config.weightD3 ?? 1 });
+    items.push({ type: "martian", weight: config.weightA3 ?? 1 });
   }
 
   // 额外自定义类型，如果启用的话，默认权重为 1
@@ -254,17 +333,17 @@ function getRandomAffixType(config: Config, specified: Record<string, string>): 
   return "none";
 }
 
-// 统一应用所有启用的修饰层/外挂层
+// 统一应用所有启用的外挂层
 export function applyAffixes(
   text: string,
   specified: Record<string, string>,
-  decorOption: string | undefined,
+  martianOption: string | undefined,
   config: Config,
   affixIterOption?: number
 ): string {
   const allAffixes = getAvailableAffixes(config);
 
-  // 1. 收集明确指定的修饰（-p, -s, -a 等指定的且不是 "none" 的修饰）
+  // 1. 收集明确指定的外挂（-a 等指定的且不是 "none" 的外挂）
   const specifiedQueue: AffixItem[] = [];
   const specifiedTypes = Object.keys(specified);
 
@@ -291,7 +370,7 @@ export function applyAffixes(
   }
 
   // 2. 计算实际需要的迭代次数
-  const configMax = Math.min(config.maxAffixIterations ?? 2, 10);
+  const configMax = Math.min(config.maxAffixIterations ?? 3, 10);
   let actualIterations: number;
   if (affixIterOption !== undefined && !isNaN(affixIterOption)) {
     actualIterations = Math.min(Math.max(0, affixIterOption), 10);
@@ -299,7 +378,7 @@ export function applyAffixes(
     actualIterations = configMax <= 0 ? 0 : Math.floor(Math.random() * configMax) + 1;
   }
 
-  // 3. 构建待应用的修饰队列
+  // 3. 构建待应用的外挂队列
   let queue = [...specifiedQueue];
 
   // 如果队列长度小于目标迭代次数，从候选池中根据权重随机补充
@@ -333,7 +412,7 @@ export function applyAffixes(
     }
   }
 
-  // 6. 依次应用队列中的每个修饰
+  // 6. 依次应用队列中的每个外挂
   let current = text;
   for (const item of queue) {
     let left = item.left;
@@ -342,8 +421,8 @@ export function applyAffixes(
     // 特殊处理 martian 分类下的混搭模式
     if (item.type === "martian") {
       const specifiedVal = specified["martian"];
-      let mode = config.martianDecoratorMode ?? "both";
-      const optVal = specifiedVal || decorOption;
+      let mode = config.martianAffixMode ?? "both";
+      const optVal = specifiedVal || martianOption;
       if (optVal === "mix") {
         mode = "mix";
       } else if (optVal === "pair") {
@@ -462,8 +541,8 @@ export function applyTransformers(
     0: (t) => t,
     1: (t) => transformTraditional(t),
     2: (t) => transformMartian(t),
-    3: (t, c, d) => transformPinyin(t, d),
-    4: (t, c, d) => transformLeetAndDecorate(t, d)
+    3: (t, c, d) => transformPinyin(t, c, d),
+    4: (t, c, d) => transformLeetAndDecorate(t, c, d)
   };
 
   // 决定处理模式：优先使用命令行指定的，其次是配置中的，默认是 'each'
@@ -549,53 +628,65 @@ export function applyTransformers(
 export function getListMessage(config: Config): string {
   const isEnabledStr = (num: number) => isTransEnabled(num, config) ? "" : " (已全局禁用)";
 
-  // 计算权重和几率
+  // T层
   const w0 = config.weightT0 ?? 1;
   const w1 = isTransEnabled(1, config) ? (config.weightT1 ?? 1) : 0;
   const w2 = isTransEnabled(2, config) ? (config.weightT2 ?? 1) : 0;
   const w3 = isTransEnabled(3, config) ? (config.weightT3 ?? 1) : 0;
   const w4 = isTransEnabled(4, config) ? (config.weightT4 ?? 1) : 0;
-  const total = w0 + w1 + w2 + w3 + w4;
+  const totalT = w0 + w1 + w2 + w3 + w4;
+  const pctT = (w: number) => totalT > 0 ? `${((w / totalT) * 100).toFixed(1)}%` : "0%";
 
-  const pct = (w: number) => total > 0 ? `${((w / total) * 100).toFixed(1)}%` : "0%";
+  // D层
+  const decors = getAvailableDecors(config);
+  const isD1Enabled = config.enablePinyinSeparator ?? true;
+  const isD2Enabled = config.enablePinyinEnclosure ?? true;
+  const isD3Enabled = config.enableLeetSeparator ?? true;
 
-  // 计算修饰外挂层权重和几率
-  const wd0 = config.weightD0 ?? 1;
-  const wd1 = (config.enabledTypes?.prefix ?? true) ? (config.weightD1 ?? 1) : 0;
-  const wd2 = (config.enabledTypes?.suffix ?? true) ? (config.weightD2 ?? 1) : 0;
-  const wd3 = (config.enabledTypes?.martian ?? true) ? (config.weightD3 ?? 1) : 0;
+  // A层权重和几率
+  const wa0 = config.weightA0 ?? 1;
+  const wa1 = (config.enabledTypes?.prefix ?? true) ? (config.weightA1 ?? 1) : 0;
+  const wa2 = (config.enabledTypes?.suffix ?? true) ? (config.weightA2 ?? 1) : 0;
+  const wa3 = (config.enabledTypes?.martian ?? true) ? (config.weightA3 ?? 1) : 0;
 
   // 加上自定义类型的权重
-  let totalD = wd0 + wd1 + wd2 + wd3;
+  let totalA = wa0 + wa1 + wa2 + wa3;
   const enabledTypes = config.enabledTypes || { prefix: true, suffix: true, martian: true };
   const customTypes = Object.keys(enabledTypes).filter(t => t !== 'prefix' && t !== 'suffix' && t !== 'martian');
   const customWeights: Record<string, number> = {};
   for (const type of customTypes) {
     if (enabledTypes[type]) {
       customWeights[type] = 1; // 自定义分类默认权重为 1
-      totalD += 1;
+      totalA += 1;
     }
   }
 
-  const pctD = (w: number) => totalD > 0 ? `${((w / totalD) * 100).toFixed(1)}%` : "0%";
+  const pctA = (w: number) => totalA > 0 ? `${((w / totalA) * 100).toFixed(1)}%` : "0%";
   const isAffixEnabledStr = (type: string) => (config.enabledTypes?.[type] ?? true) ? "" : " (已全局禁用)";
 
   let msg = "✨ 次文化 ID 生成器 支持列表 ✨\n\n";
   msg += "1️⃣ 【核心变换层 Core Transformation】(使用 -t 选项或代号指定)\n";
-  msg += `• [T0] 不做处理 - 权重: ${w0} (几率: ${pct(w0)})\n`;
-  msg += `• [T1] 简转繁 (trad) - 权重: ${w1} (几率: ${pct(w1)})${isEnabledStr(1)}\n`;
-  msg += `• [T2] 火星文 (mart) - 权重: ${w2} (几率: ${pct(w2)})${isEnabledStr(2)}\n`;
-  msg += `• [T3] 拼音化 (piny) - 权重: ${w3} (几率: ${pct(w3)})${isEnabledStr(3)}\n`;
-  msg += `• [T4] 极客文 (leet) - 权重: ${w4} (几率: ${pct(w4)})${isEnabledStr(4)}\n\n`;
+  msg += `• [T0] 不做处理 - 权重: ${w0} (几率: ${pctT(w0)})\n`;
+  msg += `• [T1] 简转繁 (trad) - 权重: ${w1} (几率: ${pctT(w1)})${isEnabledStr(1)}\n`;
+  msg += `• [T2] 火星文 (mart) - 权重: ${w2} (几率: ${pctT(w2)})${isEnabledStr(2)}\n`;
+  msg += `• [T3] 拼音化 (piny) - 权重: ${w3} (几率: ${pctT(w3)})${isEnabledStr(3)}\n`;
+  msg += `• [T4] 极客文 (leet) - 权重: ${w4} (几率: ${pctT(w4)})${isEnabledStr(4)}\n\n`;
 
-  msg += "2️⃣ 【修饰与外挂层 Decorations & Affixes】(可以使用 --affix 指定)\n";
-  msg += `• [D0] 不做处理 - 权重: ${wd0} (几率: ${pctD(wd0)})\n`;
-  msg += `• [D1] 前置挂件 (prefix) - 权重: ${wd1} (几率: ${pctD(wd1)})${isAffixEnabledStr('prefix')}\n`;
-  msg += `• [D2] 后置挂件 (suffix) - 权重: ${wd2} (几率: ${pctD(wd2)})${isAffixEnabledStr('suffix')}\n`;
-  msg += `• [D3] 火星包边 (martian) - 权重: ${wd3} (几率: ${pctD(wd3)})${isAffixEnabledStr('martian')}\n`;
+  msg += "2️⃣ 【字内修饰层 Decorations】(使用 -d 选项或代号指定)\n";
+  msg += `• [D0] 不做修饰\n`;
+  msg += `• [D1] 拼音连接符 (piny-sep) - 状态: ${isD1Enabled ? "启用" : "已全局禁用"}\n`;
+  msg += `• [D2] 拼音首尾包裹 (piny-enc) - 状态: ${isD2Enabled ? "启用" : "已全局禁用"}\n`;
+  msg += `• [D3] 极客文连接符 (leet-sep) - 状态: ${isD3Enabled ? "启用" : "已全局禁用"}\n`;
+  msg += `• 可用修饰符号共 ${decors.length} 个：${decors.slice(0, 15).join(" ")}${decors.length > 15 ? " ..." : ""}\n\n`;
+
+  msg += "3️⃣ 【外挂层 Affixes】(可以使用 -a 或 --affix 指定)\n";
+  msg += `• [A0] 不做处理 - 权重: ${wa0} (几率: ${pctA(wa0)})\n`;
+  msg += `• [A1] 前置外挂 (prefix) - 权重: ${wa1} (几率: ${pctA(wa1)})${isAffixEnabledStr('prefix')}\n`;
+  msg += `• [A2] 后置外挂 (suffix) - 权重: ${wa2} (几率: ${pctA(wa2)})${isAffixEnabledStr('suffix')}\n`;
+  msg += `• [A3] 火星包边 (martian) - 权重: ${wa3} (几率: ${pctA(wa3)})${isAffixEnabledStr('martian')}\n`;
   for (const type of customTypes) {
     const w = customWeights[type] || 0;
-    msg += `• [自定义] ${type} - 权重: ${w} (几率: ${pctD(w)})${isAffixEnabledStr(type)}\n`;
+    msg += `• [自定义] ${type} - 权重: ${w} (几率: ${pctA(w)})${isAffixEnabledStr(type)}\n`;
   }
   msg += "\n";
 
@@ -633,8 +724,8 @@ export function getListMessage(config: Config): string {
     msg += "\n";
   }
 
-  msg += "💡 提示：使用 -d, --decor 指定各修饰与外挂层，输入 none 禁用某项。代号 d1 代表 prefix，d2 代表 suffix，d3 代表 martian，如 -d d1:1,d2:none\n";
-  msg += "📝 示例：subid 雪芝麻糊 -t trad -d d1:1,d2:none,martian:none";
+  msg += "💡 提示：使用 -d, --decor 控制字内修饰层，输入 none 禁用；使用 -a, --affix 控制外挂层，格式为 type:value，输入 none 禁用。代号 a1 代表 prefix，a2 代表 suffix，a3 代表 martian。\n";
+  msg += "📝 示例：subid 雪芝麻糊 -t trad -d d1:none -a a1:ʚ,a2:none";
   return msg;
 }
 
@@ -647,11 +738,12 @@ export function apply(ctx: Context, config: Config) {
     .option("iter", "-i <iter:number>      指定核心变换的叠加迭代次数 (候选: 1-10 之间的数字，默认从配置读取)")
     .option("trans", "-t <trans:string>    指定核心变换与叠加顺序 (支持逗号分隔，或无逗号纯数字如 12。候选: t1/trad/1 (简转繁), t2/mart/2 (火星文), t3/piny/3 (拼音化), t4/leet/4 (极客文), none/0 (不做处理))")
     .option("coreMode", "-c <coreMode:string> 指定核心变换处理模式 (候选: each 逐字处理, all 整段处理)")
-    .option("affixIter", "-y <affixIter:number> 指定修饰与外挂层的叠加迭代次数 (候选: 1-10 之间的数字，默认从配置读取)")
-    .option("decor", "-d <decor:string>    指定特定类型的修饰符 (格式为 type:value，多项逗号分隔。type 候选: d1/prefix, d2/suffix, d3/martian，或自定义分类；value 候选: none 禁用，或自定义文本。如 d1:ʚ,d2:none)")
-    .option("martian", "-m <martian:string>  控制火星包边左右配对模式 (候选: none 禁用, mix 随机混搭, pair 对称配对)")
-    .example("subid 雪芝麻糊 -d d1:ʚ,d2:none -t trad -m none (固定前置挂件，禁用后缀，应用简转繁核心变换且禁用火星包边)")
-    .example("subid 雪芝麻糊 -t 12 -c all                           (对所有文字整体应用简转繁和火星文变换)")
+    .option("decor", "-d <decor:string>    指定特定类型的字内修饰 (格式为 type:value，多项逗号分隔。type 候选: d1/pinyin-sep, d2/pinyin-enc, d3/leet-sep；value 候选: none 禁用，或自定义文本。如 d1:_,d2:★)")
+    .option("affixIter", "-y <affixIter:number> 指定外挂层的叠加迭代次数 (候选: 1-10 之间的数字，默认从配置读取)")
+    .option("affix", "-a <affix:string>    指定特定类型的外挂词缀 (格式为 type:value，多项逗号分隔。type 候选: a1/prefix, a2/suffix, a3/martian，或自定义分类；value 候选: none 禁用，或自定义文本。如 a1:ʚ,a2:none)")
+    .option("martian", "-m <martian:string>  控制火星包边左右外挂模式 (候选: none 禁用, mix 随机混搭, pair 对称配对)")
+    .example("subid 雪芝麻糊 -a a1:ʚ,a2:none -t trad -m none (固定前置外挂，禁用后缀外挂，应用简转繁且禁用火星包边)")
+    .example("subid 雪芝麻糊 -t 12 -c all -d d1:none           (对所有文字整体应用简转繁和火星文变换，且禁用拼音连接符)")
     .action(async (argv, keyword) => {
       const { options, session } = argv;
       if (options.list) {
@@ -692,24 +784,24 @@ export function apply(ctx: Context, config: Config) {
         }
       }
 
-      const processed = applyTransformers(targetKeyword, options.trans, options.iter, options.martian, config, options.coreMode);
+      const processed = applyTransformers(targetKeyword, options.trans, options.iter, options.decor, config, options.coreMode);
 
       const specified: Record<string, string> = {};
-      if (options.decor) {
-        const parts = options.decor.split(",");
+      if (options.affix) {
+        const parts = options.affix.split(",");
         for (const part of parts) {
           const colonIndex = part.indexOf(":");
           if (colonIndex > 0) {
             let t = part.slice(0, colonIndex).trim().toLowerCase();
             const val = part.slice(colonIndex + 1).trim();
 
-            if (t === "d1" || t === "pref" || t === "1") {
+            if (t === "a1" || t === "pref" || t === "1") {
               t = "prefix";
-            } else if (t === "d2" || t === "suff" || t === "2") {
+            } else if (t === "a2" || t === "suff" || t === "2") {
               t = "suffix";
-            } else if (t === "d3" || t === "mart" || t === "3") {
+            } else if (t === "a3" || t === "mart" || t === "3") {
               t = "martian";
-            } else if (t === "d0" || t === "none" || t === "0") {
+            } else if (t === "a0" || t === "none" || t === "0") {
               t = "none";
             }
 
