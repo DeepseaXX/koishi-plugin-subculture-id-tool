@@ -89,6 +89,10 @@ export interface Config {
   enablePinyinEnclosure?: boolean;
   enableLeetSeparator?: boolean;
   customDecors?: string[];
+  weightD0?: number;
+  weightD1?: number;
+  weightD2?: number;
+  weightD3?: number;
 
   // 3️⃣ 外挂层 (A层)
   maxAffixIterations?: number;
@@ -124,6 +128,10 @@ export const Config: Schema<Config> =
       enablePinyinEnclosure: Schema.boolean().default(true).description("是否启用 [D2] 拼音首尾包裹"),
       enableLeetSeparator: Schema.boolean().default(true).description("是否启用 [D3] 极客文连接符"),
       customDecors: Schema.array(Schema.string()).default([]).description("自定义额外字内修饰符列表"),
+      weightD0: Schema.number().default(1).min(0).description("字内不做修饰 [D0] 的生效权重"),
+      weightD1: Schema.number().default(1).min(0).description("拼音连接符 [D1] 的生效权重"),
+      weightD2: Schema.number().default(1).min(0).description("拼音首尾包裹 [D2] 的生效权重"),
+      weightD3: Schema.number().default(1).min(0).description("极客文连接符 [D3] 的生效权重"),
     }).description("2️⃣ 字内修饰层 (Decorations)"),
     Schema.object({
       maxAffixIterations: Schema.number().default(3).min(0).max(10).description("默认随机外挂层叠加迭代次数上限 (硬上限 10 次)"),
@@ -204,13 +212,20 @@ function transformPinyin(text: string, config: Config, decorOption?: string): st
   const isD1Enabled = decorOption !== "none" && !decorOption?.includes("d1:none") && !decorOption?.includes("pinyin-sep:none");
 
   if (enableSep && isD1Enabled) {
-    const decors = getAvailableDecors(config);
-    if (decors.length > 0) {
-      const specifiedD1 = parseDecorOptionValue(decorOption, ["d1", "pinyin-sep", "pinyinSeparator"]);
+    const specifiedD1 = parseDecorOptionValue(decorOption, ["d1", "pinyin-sep", "pinyinSeparator"]);
+    const w0 = config.weightD0 ?? 1;
+    const w1 = config.weightD1 ?? 1;
+    const total = w0 + w1;
+    const shouldApply = specifiedD1 !== null || (total > 0 ? (Math.random() * total < w1) : false);
+
+    if (shouldApply) {
       if (specifiedD1 !== null) {
         sep = specifiedD1;
       } else {
-        sep = decors[Math.floor(Math.random() * decors.length)];
+        const decors = getAvailableDecors(config);
+        if (decors.length > 0) {
+          sep = decors[Math.floor(Math.random() * decors.length)];
+        }
       }
     }
   }
@@ -222,17 +237,24 @@ function transformPinyin(text: string, config: Config, decorOption?: string): st
   const isD2Enabled = decorOption !== "none" && !decorOption?.includes("d2:none") && !decorOption?.includes("pinyin-enc:none");
 
   if (enableEnc && isD2Enabled) {
-    const decors = getAvailableDecors(config);
-    if (decors.length > 0) {
-      const specifiedD2 = parseDecorOptionValue(decorOption, ["d2", "pinyin-enc", "pinyinEnclosure"]);
+    const specifiedD2 = parseDecorOptionValue(decorOption, ["d2", "pinyin-enc", "pinyinEnclosure"]);
+    const w0 = config.weightD0 ?? 1;
+    const w2 = config.weightD2 ?? 1;
+    const total = w0 + w2;
+    const shouldApply = specifiedD2 !== null || (total > 0 ? (Math.random() * total < w2) : false);
+
+    if (shouldApply) {
       if (specifiedD2 !== null) {
         start = specifiedD2;
         end = specifiedD2;
       } else {
-        const startDecos = [...decors, ""];
-        const endDecos = [...decors, ""];
-        start = startDecos[Math.floor(Math.random() * startDecos.length)];
-        end = endDecos[Math.floor(Math.random() * endDecos.length)];
+        const decors = getAvailableDecors(config);
+        if (decors.length > 0) {
+          const startDecos = [...decors, ""];
+          const endDecos = [...decors, ""];
+          start = startDecos[Math.floor(Math.random() * startDecos.length)];
+          end = endDecos[Math.floor(Math.random() * endDecos.length)];
+        }
       }
     }
   }
@@ -263,13 +285,20 @@ function transformLeetAndDecorate(text: string, config: Config, decorOption?: st
   const isD3Enabled = decorOption !== "none" && !decorOption?.includes("d3:none") && !decorOption?.includes("leet-sep:none");
 
   if (enableLeetSep && isD3Enabled) {
-    const decors = getAvailableDecors(config);
-    if (decors.length > 0) {
-      const specifiedD3 = parseDecorOptionValue(decorOption, ["d3", "leet-sep", "leetSeparator"]);
+    const specifiedD3 = parseDecorOptionValue(decorOption, ["d3", "leet-sep", "leetSeparator"]);
+    const w0 = config.weightD0 ?? 1;
+    const w3 = config.weightD3 ?? 1;
+    const total = w0 + w3;
+    const shouldApply = specifiedD3 !== null || (total > 0 ? (Math.random() * total < w3) : false);
+
+    if (shouldApply) {
       if (specifiedD3 !== null) {
         inj = specifiedD3;
       } else {
-        inj = decors[Math.floor(Math.random() * decors.length)];
+        const decors = getAvailableDecors(config);
+        if (decors.length > 0) {
+          inj = decors[Math.floor(Math.random() * decors.length)];
+        }
       }
     }
   }
@@ -643,6 +672,15 @@ export function getListMessage(config: Config): string {
   const isD2Enabled = config.enablePinyinEnclosure ?? true;
   const isD3Enabled = config.enableLeetSeparator ?? true;
 
+  const wd0 = config.weightD0 ?? 1;
+  const wd1 = isD1Enabled ? (config.weightD1 ?? 1) : 0;
+  const wd2 = isD2Enabled ? (config.weightD2 ?? 1) : 0;
+  const wd3 = isD3Enabled ? (config.weightD3 ?? 1) : 0;
+
+  const pctD1 = wd1 + wd0 > 0 ? `${((wd1 / (wd1 + wd0)) * 100).toFixed(1)}%` : "0%";
+  const pctD2 = wd2 + wd0 > 0 ? `${((wd2 / (wd2 + wd0)) * 100).toFixed(1)}%` : "0%";
+  const pctD3 = wd3 + wd0 > 0 ? `${((wd3 / (wd3 + wd0)) * 100).toFixed(1)}%` : "0%";
+
   // A层权重和几率
   const wa0 = config.weightA0 ?? 1;
   const wa1 = (config.enabledTypes?.prefix ?? true) ? (config.weightA1 ?? 1) : 0;
@@ -673,10 +711,10 @@ export function getListMessage(config: Config): string {
   msg += `• [T4] 极客文 (leet) - 权重: ${w4} (几率: ${pctT(w4)})${isEnabledStr(4)}\n\n`;
 
   msg += "2️⃣ 【字内修饰层 Decorations】(使用 -d 选项或代号指定)\n";
-  msg += `• [D0] 不做修饰\n`;
-  msg += `• [D1] 拼音连接符 (piny-sep) - 状态: ${isD1Enabled ? "启用" : "已全局禁用"}\n`;
-  msg += `• [D2] 拼音首尾包裹 (piny-enc) - 状态: ${isD2Enabled ? "启用" : "已全局禁用"}\n`;
-  msg += `• [D3] 极客文连接符 (leet-sep) - 状态: ${isD3Enabled ? "启用" : "已全局禁用"}\n`;
+  msg += `• [D0] 不做修饰 - 权重: ${wd0}\n`;
+  msg += `• [D1] 拼音连接符 (piny-sep) - 权重: ${wd1} (生效几率: ${pctD1})${isD1Enabled ? "" : " (已全局禁用)"}\n`;
+  msg += `• [D2] 拼音首尾包裹 (piny-enc) - 权重: ${wd2} (生效几率: ${pctD2})${isD2Enabled ? "" : " (已全局禁用)"}\n`;
+  msg += `• [D3] 极客文连接符 (leet-sep) - 权重: ${wd3} (生效几率: ${pctD3})${isD3Enabled ? "" : " (已全局禁用)"}\n`;
   msg += `• 可用修饰符号共 ${decors.length} 个：${decors.slice(0, 15).join(" ")}${decors.length > 15 ? " ..." : ""}\n\n`;
 
   msg += "3️⃣ 【外挂层 Affixes】(可以使用 -a 或 --affix 指定)\n";
